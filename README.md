@@ -95,6 +95,23 @@ Click the toolbar icon on any claude.ai tab. Everything applies live — no relo
 | **Clock format** | Days field, 12/24-hour |
 | **Sounds** | Completion / input-required chimes, volume, test buttons |
 
+<div align="center">
+<table>
+	<tr>
+		<td align="center"><img src="docs/settings-colors.png" width="340" alt="Colors settings"></td>
+		<td align="center"><img src="docs/settings-behavior.png" width="340" alt="Thresholds and behavior settings"></td>
+	</tr>
+	<tr>
+		<td align="center"><img src="docs/settings-ring.png" width="340" alt="Ring appearance settings"></td>
+		<td align="center"><img src="docs/settings-position.png" width="340" alt="Position and size settings"></td>
+	</tr>
+	<tr>
+		<td align="center"><img src="docs/settings-visibility.png" width="340" alt="Show / hide settings"></td>
+		<td align="center"><img src="docs/settings-clock-sounds.png" width="340" alt="Clock format and sounds settings"></td>
+	</tr>
+</table>
+</div>
+
 ## 🔍 How it works
 
 - A small injected script wraps `window.fetch` on claude.ai to read the conversation tree, the `/usage` endpoint, and the live `message_limit` data in Claude's SSE stream. Nothing is modified — responses are cloned and parsed.
