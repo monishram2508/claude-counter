@@ -28,13 +28,13 @@
 		contextScale: 200000, // manual fallback when auto is off / model unknown
 
 		// ring appearance
-		ringThickness: 19, // percent of radius
+		ringThickness: 13, // percent of radius
 		tickSpacing: 10, // 5 | 10 | 25 | 0 (off)
-		roundedCaps: true,
+		roundedCaps: false,
 
 		// widget position & size
 		corner: 'top-right', // top-right | top-left | bottom-right | bottom-left
-		offsetY: 96, // px from top (or bottom) edge
+		offsetY: 54, // px from top (or bottom) edge
 		offsetX: 16, // px from side edge
 		widgetWidth: 250,
 
