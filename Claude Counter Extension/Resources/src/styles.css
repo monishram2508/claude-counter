@@ -1,0 +1,222 @@
+/* ============================================================
+   Claude Counter — widget stylesheet
+   The panel is fixed to the viewport; all colors come from CSS
+   variables set inline by widget.js (driven by user settings).
+   ============================================================ */
+
+.cc-hidden {
+	display: none !important;
+}
+
+.cc-widget {
+	--cc-text: #ffffff;
+	--cc-fill: #af6143;
+	--cc-track: #4a4340;
+	--cc-warn: #ce2029;
+	--cc-tick: rgba(255, 255, 255, 0.35);
+
+	position: fixed;
+	z-index: 2147483000;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 14px 14px 16px;
+	border-radius: 14px;
+	background: color-mix(in srgb, var(--cc-track) 22%, transparent);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	border: 1px solid color-mix(in srgb, var(--cc-text) 12%, transparent);
+	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
+	color: var(--cc-text);
+	font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+	user-select: none;
+	pointer-events: auto;
+}
+
+/* --- rings row --- */
+.cc-widget__rings {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	justify-content: space-around;
+	gap: 8px;
+}
+
+.cc-ringBlock {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 7px;
+	flex: 1;
+	min-width: 0;
+}
+
+.cc-ringBlock__title {
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: var(--cc-text);
+	opacity: 0.92;
+}
+
+.cc-ringBlock__ringWrap {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.cc-ring {
+	display: block;
+}
+
+.cc-ringBlock__pct {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	font-size: 15px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	color: var(--cc-text);
+	white-space: nowrap;
+}
+
+.cc-ringBlock__pct.cc-warn {
+	color: var(--cc-warn);
+}
+
+/* --- segmented clock --- */
+.cc-clock {
+	display: inline-flex;
+	align-items: baseline;
+	font-variant-numeric: tabular-nums;
+	font-size: 12px;
+	letter-spacing: 0.01em;
+	color: var(--cc-text);
+	opacity: 0.9;
+}
+
+.cc-clock__field {
+	display: inline-block;
+	min-width: 1.35em;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+}
+
+.cc-clock__sep {
+	display: inline-block;
+	width: 0.4em;
+	text-align: center;
+	opacity: 0.6;
+}
+
+.cc-ringBlock__clock {
+	margin-top: 1px;
+}
+
+/* --- divider --- */
+.cc-widget__divider {
+	height: 1px;
+	width: 100%;
+	background: color-mix(in srgb, var(--cc-text) 10%, transparent);
+}
+
+/* --- chat info block --- */
+.cc-widget__chat {
+	display: flex;
+	flex-direction: column;
+	gap: 9px;
+}
+
+.cc-chatRow {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.cc-chatRow--inline {
+	flex-direction: row;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.cc-chatRow__top {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.cc-chatRow__label {
+	font-size: 10.5px;
+	text-transform: lowercase;
+	letter-spacing: 0.03em;
+	color: var(--cc-text);
+	opacity: 0.55;
+}
+
+.cc-chatRow__value {
+	font-size: 11.5px;
+	color: var(--cc-text);
+	opacity: 0.95;
+	white-space: nowrap;
+}
+
+.cc-mono {
+	font-variant-numeric: tabular-nums;
+}
+
+.cc-muted {
+	opacity: 0.4 !important;
+}
+
+/* --- context token bar --- */
+.cc-tokenBar {
+	position: relative;
+	box-sizing: border-box;
+	width: 100%;
+	height: 8px;
+	border-radius: 4px;
+	background: var(--cc-track);
+	overflow: hidden;
+}
+
+.cc-tokenBar__fill {
+	height: 100%;
+	width: 0%;
+	background: var(--cc-fill);
+	border-radius: 4px;
+	transition: width 240ms ease;
+}
+
+.cc-tokenBar__fill.cc-warn {
+	background: var(--cc-warn);
+}
+
+/* 10% tick dividers on the context bar, using the configurable tick color */
+.cc-tokenBar::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background-image: repeating-linear-gradient(
+		to right,
+		transparent 0,
+		transparent calc(10% - 1px),
+		var(--cc-tick) calc(10% - 1px),
+		var(--cc-tick) 10%
+	);
+}
+
+/* --- warn pulse --- */
+@keyframes cc-pulse-kf {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.45; }
+}
+
+.cc-pulse {
+	animation: cc-pulse-kf 1.4s ease-in-out infinite;
+}

@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+
+# Xcode — build output
+build/
+DerivedData/
+*.xcarchive
+*.moved-aside
+
+# Xcode — per-user state (never share these)
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+
+# Editor / tooling
+*.bak
+*.swp
+.vscode/
+.idea/
+
+# Distribution artifacts produced by scripts/
+dist/

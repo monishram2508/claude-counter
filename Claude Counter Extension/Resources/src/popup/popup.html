@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="popup.css">
+	<title>Claude Counter</title>
+</head>
+<body>
+	<div class="hdr">
+		<span class="hdr__title">Claude Counter</span>
+		<label class="switch">
+			<input type="checkbox" id="enabled">
+			<span class="switch__track"></span>
+		</label>
+	</div>
+
+	<div class="scroll">
+		<!-- COLORS -->
+		<section>
+			<h2>Colors</h2>
+			<div class="row">
+				<label for="fillColor">Fill (orange)</label>
+				<input type="color" id="fillColor">
+			</div>
+			<div class="row">
+				<label for="trackColor">Unfilled track</label>
+				<input type="color" id="trackColor">
+			</div>
+			<div class="row">
+				<label for="warnColor">Warning</label>
+				<input type="color" id="warnColor">
+			</div>
+			<div class="row">
+				<label for="textColor">Text</label>
+				<input type="color" id="textColor">
+			</div>
+			<div class="row">
+				<label for="markerColor">Time marker</label>
+				<input type="color" id="markerColor">
+			</div>
+			<div class="row">
+				<label for="tickColorAlpha">Tick opacity</label>
+				<input type="range" id="tickColorAlpha" min="0" max="100" step="5">
+				<span class="val" id="tickColorAlphaVal"></span>
+			</div>
+		</section>
+
+		<!-- BEHAVIOR -->
+		<section>
+			<h2>Thresholds &amp; behavior</h2>
+			<div class="row">
+				<label for="warnThreshold">Warn at (%)</label>
+				<input type="range" id="warnThreshold" min="50" max="100" step="1">
+				<span class="val" id="warnThresholdVal"></span>
+			</div>
+			<div class="row">
+				<label for="warnStyle">Warn style</label>
+				<select id="warnStyle">
+					<option value="flat">Flat recolor</option>
+					<option value="pulse">Pulse</option>
+				</select>
+			</div>
+			<div class="row">
+				<label for="autoContextScale">Auto context limit (from model)</label>
+				<label class="switch switch--sm"><input type="checkbox" id="autoContextScale"><span class="switch__track"></span></label>
+			</div>
+			<div class="row">
+				<label for="contextScale">Manual context limit (tokens)</label>
+				<input type="number" id="contextScale" min="1000" step="1000" class="num">
+			</div>
+		</section>
+
+		<!-- RING -->
+		<section>
+			<h2>Ring appearance</h2>
+			<div class="row">
+				<label for="ringThickness">Thickness (%)</label>
+				<input type="range" id="ringThickness" min="6" max="35" step="1">
+				<span class="val" id="ringThicknessVal"></span>
+			</div>
+			<div class="row">
+				<label for="tickSpacing">Tick spacing</label>
+				<select id="tickSpacing">
+					<option value="0">Off</option>
+					<option value="5">Every 5%</option>
+					<option value="10">Every 10%</option>
+					<option value="25">Every 25%</option>
+				</select>
+			</div>
+			<div class="row">
+				<label for="roundedCaps">Rounded arc caps</label>
+				<label class="switch switch--sm">
+					<input type="checkbox" id="roundedCaps">
+					<span class="switch__track"></span>
+				</label>
+			</div>
+		</section>
+
+		<!-- POSITION -->
+		<section>
+			<h2>Position &amp; size</h2>
+			<div class="row">
+				<label for="corner">Corner</label>
+				<select id="corner">
+					<option value="top-right">Top right</option>
+					<option value="top-left">Top left</option>
+					<option value="bottom-right">Bottom right</option>
+					<option value="bottom-left">Bottom left</option>
+				</select>
+			</div>
+			<div class="row">
+				<label for="offsetY">Vertical offset (px)</label>
+				<input type="number" id="offsetY" min="0" step="1" class="num">
+			</div>
+			<div class="row">
+				<label for="offsetX">Side offset (px)</label>
+				<input type="number" id="offsetX" min="0" step="1" class="num">
+			</div>
+			<div class="row">
+				<label for="widgetWidth">Width (px)</label>
+				<input type="number" id="widgetWidth" min="180" max="480" step="1" class="num">
+			</div>
+		</section>
+
+		<!-- VISIBILITY -->
+		<section>
+			<h2>Show / hide</h2>
+			<div class="row">
+				<label for="showOnlyInChats">Only show on chat pages</label>
+				<label class="switch switch--sm"><input type="checkbox" id="showOnlyInChats"><span class="switch__track"></span></label>
+			</div>
+			<div class="row">
+				<label for="showSessionRing">Session ring</label>
+				<label class="switch switch--sm"><input type="checkbox" id="showSessionRing"><span class="switch__track"></span></label>
+			</div>
+			<div class="row">
+				<label for="showWeeklyRing">Weekly ring</label>
+				<label class="switch switch--sm"><input type="checkbox" id="showWeeklyRing"><span class="switch__track"></span></label>
+			</div>
+			<div class="row">
+				<label for="showTokenBar">Context token bar</label>
+				<label class="switch switch--sm"><input type="checkbox" id="showTokenBar"><span class="switch__track"></span></label>
+			</div>
+			<div class="row">
+				<label for="showLastPrompt">Last-prompt time</label>
+				<label class="switch switch--sm"><input type="checkbox" id="showLastPrompt"><span class="switch__track"></span></label>
+			</div>
+			<div class="row">
+				<label for="showCacheCountdown">Cache countdown</label>
+				<label class="switch switch--sm"><input type="checkbox" id="showCacheCountdown"><span class="switch__track"></span></label>
+			</div>
+			<div class="row">
+				<label for="showHoverTokens">Hover token count</label>
+				<label class="switch switch--sm"><input type="checkbox" id="showHoverTokens"><span class="switch__track"></span></label>
+			</div>
+			<div class="row">
+				<label for="showTimeMarker">Time-progress marker</label>
+				<label class="switch switch--sm"><input type="checkbox" id="showTimeMarker"><span class="switch__track"></span></label>
+			</div>
+		</section>
+
+		<!-- CLOCK -->
+		<section>
+			<h2>Clock format</h2>
+			<div class="row">
+				<label for="clockShowDays">Always show days field</label>
+				<label class="switch switch--sm"><input type="checkbox" id="clockShowDays"><span class="switch__track"></span></label>
+			</div>
+			<div class="row">
+				<label for="lastPromptClock24h">Last prompt in 24h</label>
+				<label class="switch switch--sm"><input type="checkbox" id="lastPromptClock24h"><span class="switch__track"></span></label>
+			</div>
+		</section>
+
+		<!-- SOUNDS -->
+		<section>
+			<h2>Sounds <span class="h2note">(play when the tab is in the background)</span></h2>
+			<div class="row">
+				<label for="soundOnCompleted">Answer completed</label>
+				<div class="rowRight">
+					<button class="btn btn--test" id="testCompleted">Test</button>
+					<label class="switch switch--sm"><input type="checkbox" id="soundOnCompleted"><span class="switch__track"></span></label>
+				</div>
+			</div>
+			<div class="row">
+				<label for="soundOnInputRequired">Input required</label>
+				<div class="rowRight">
+					<button class="btn btn--test" id="testInput">Test</button>
+					<label class="switch switch--sm"><input type="checkbox" id="soundOnInputRequired"><span class="switch__track"></span></label>
+				</div>
+			</div>
+			<div class="row">
+				<label for="soundVolume">Volume</label>
+				<input type="range" id="soundVolume" min="0" max="100" step="5">
+				<span class="val" id="soundVolumeVal"></span>
+			</div>
+		</section>
+	</div>
+
+	<div class="ftr">
+		<button id="reset" class="btn btn--ghost">Reset all</button>
+		<span class="ftr__hint">Changes apply live</span>
+	</div>
+
+	<script src="../content/settings.js"></script>
+	<script src="popup.js"></script>
+</body>
+</html>
