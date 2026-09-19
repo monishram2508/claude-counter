@@ -3,6 +3,17 @@
   "name": "Claude Counter",
   "version": "0.6.0",
   "description": "Session/weekly usage rings, context tokens, and timing info on claude.ai.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "claude-counter@monishram2508.github.io",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    }
+  },
   "permissions": [
     "storage"
   ],
