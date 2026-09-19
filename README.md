@@ -24,7 +24,7 @@ Safari doesn't let you install extensions from a zip like Chrome does — a Safa
 
 ## Features
 
-| | |
+| Feature | What it does |
 |---|---|
 | **Usage rings** | Session (5-hour) and weekly (7-day) usage from Claude's own API, with live reset countdowns. Reads the exact utilization fractions from Claude's SSE stream — more precise than the rounded numbers on the /usage page. A radial marker shows how far through each window you are. |
 | **Context token bar** | Approximate token count for the current conversation against the model's context limit. The limit is auto-detected from the model you're using (1M-context models recognized), with a manual override. |
