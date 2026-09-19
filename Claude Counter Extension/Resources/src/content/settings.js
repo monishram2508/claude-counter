@@ -49,16 +49,7 @@
 
 		// clock format
 		clockShowDays: true, // always show DD field
-		lastPromptClock24h: true, // 24h vs 12h for last-prompt timestamp
-
-		// sounds (play when the tab is NOT focused — see sounds.js)
-		soundOnCompleted: true,
-		// OFF by default: the choice-widget detector uses unverified selectors
-		// (see main.js) and can false-fire. Opt-in via the popup.
-		soundOnInputRequired: false,
-		soundVolume: 70,
-		soundCompletedFile: 'glass.mp3',
-		soundInputFile: 'basso.mp3'
+		lastPromptClock24h: true // 24h vs 12h for last-prompt timestamp
 	});
 
 	function getStorage() {

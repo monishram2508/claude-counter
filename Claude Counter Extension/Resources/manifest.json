@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Claude Counter",
   "version": "0.6.0",
-  "description": "Session/weekly usage rings, context tokens, timing info, and sounds on claude.ai.",
+  "description": "Session/weekly usage rings, context tokens, and timing info on claude.ai.",
   "permissions": [
     "storage"
   ],
@@ -39,7 +39,6 @@
         "src/content/bridge-client.js",
         "src/vendor/o200k_base.js",
         "src/content/tokens.js",
-        "src/content/sounds.js",
         "src/content/widget.js",
         "src/content/hover-tokens.js",
         "src/content/main.js"
@@ -49,9 +48,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "src/injected/bridge.js",
-        "src/sounds/glass.mp3",
-        "src/sounds/basso.mp3"
+        "src/injected/bridge.js"
       ],
       "matches": [
         "https://claude.ai/*"

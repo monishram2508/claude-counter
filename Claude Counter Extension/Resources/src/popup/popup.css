@@ -206,26 +206,3 @@ select {
 .btn--ghost:hover {
 	background: #35322f;
 }
-
-.rowRight {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	flex: none;
-}
-
-.btn--test {
-	padding: 3px 10px;
-	font-size: 11px;
-}
-
-.btn--test:hover {
-	background: #35322f;
-}
-
-.h2note {
-	text-transform: none;
-	letter-spacing: 0;
-	font-weight: 400;
-	opacity: 0.7;
-}

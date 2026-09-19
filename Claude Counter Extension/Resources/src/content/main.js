@@ -129,7 +129,6 @@
 			CC.settings.watchStorage();
 			CC.settings.onChange((next) => {
 				if (CC.widget) CC.widget.applySettings(next);
-				if (CC.sounds) CC.sounds.applySettings(next);
 				if (CC.hoverTokens) CC.hoverTokens.setEnabled(next.showHoverTokens);
 				updatePageAllowed();
 			});
@@ -138,7 +137,6 @@
 			CC.widget.build();
 			if (CC.settings) CC.widget.applySettings(CC.settings.get());
 		}
-		if (CC.sounds && CC.settings) CC.sounds.applySettings(CC.settings.get());
 		if (CC.hoverTokens) {
 			CC.hoverTokens.install();
 			CC.hoverTokens.setEnabled(CC.settings ? CC.settings.get().showHoverTokens : true);
@@ -243,11 +241,6 @@
 	}
 
 	function handleGenerationEnd() {
-		// Answer completed → play the completed sound (gated on tab focus inside).
-		if (CC.sounds) CC.sounds.playCompleted();
-		// After a response finishes, an interactive choice widget may appear a beat
-		// later (buttons render after message_stop). Check shortly after.
-		scheduleInputRequiredCheck();
 		// Re-fetch the conversation tree so the just-finished message is present in
 		// our trunk (hover token counts + context metrics would otherwise be stale
 		// until the next navigation or branch switch). Small delay so the server
@@ -259,51 +252,6 @@
 	}
 
 	let _postGenRefreshTimer = null;
-
-	// ---- input-required (interactive choice widget) detection ----
-	// UNVERIFIED selectors: these have never been validated against a real
-	// choice widget's DOM, and the substring matches can hit unrelated
-	// elements. That is why soundOnInputRequired now DEFAULTS TO OFF — the
-	// feature is opt-in until the selectors are confirmed against real markup.
-	let _inputCheckTimer = null;
-	let _lastInputSignature = null;
-
-	function scheduleInputRequiredCheck() {
-		if (_inputCheckTimer) clearTimeout(_inputCheckTimer);
-		// give the DOM a moment to render the widget after message_stop
-		_inputCheckTimer = setTimeout(runInputRequiredCheck, 600);
-	}
-
-	function runInputRequiredCheck() {
-		try {
-			const el = detectChoiceWidget();
-			if (!el) return;
-			// De-dupe: don't re-play for the same widget instance.
-			const sig = el.getAttribute('data-cc-sig') || `${el.tagName}:${(el.textContent || '').slice(0, 40)}`;
-			if (sig === _lastInputSignature) return;
-			_lastInputSignature = sig;
-			if (CC.sounds) CC.sounds.playInputRequired();
-		} catch {
-			// ignore
-		}
-	}
-
-	// Returns the widget element if an interactive choice is present, else null.
-	// Fail-safe: returns null (no sound) when unsure. See note above — the
-	// selectors are unverified placeholders.
-	function detectChoiceWidget() {
-		const selectors = [
-			'[data-testid*="option"]',
-			'[data-testid*="choice"]',
-			'[role="radiogroup"]',
-			'button[data-choice]'
-		];
-		for (const sel of selectors) {
-			const el = document.querySelector(sel);
-			if (el && el.offsetParent !== null) return el;
-		}
-		return null;
-	}
 
 	CC.bridge.on('cc:generation_start', handleGenerationStart);
 	CC.bridge.on('cc:conversation', handleConversationPayload);
@@ -322,7 +270,6 @@
 		if (currentConversationId !== previousConversationId) {
 			if (CC.widget) CC.widget.setConversationMetrics({});
 			if (CC.hoverTokens) CC.hoverTokens.setTrunk(null);
-			_lastInputSignature = null;
 		}
 
 		if (!currentConversationId) return;

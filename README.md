@@ -30,7 +30,6 @@ Safari doesn't let you install extensions from a zip like Chrome does — a Safa
 | **Hover token counts** | Hover any message to see its individual token count. |
 | **Cache countdown** | How long the conversation stays prompt-cached (cheaper & faster to continue) after the last response. |
 | **Last prompt time** | Timestamp of the last completed response. |
-| **Sounds** | Optional chime when a response finishes — played only when you're *not* looking at the tab. |
 | **Fully configurable** | Colors, thresholds, ring appearance, position, clock formats, per-element visibility — all live from the toolbar popup. |
 
 The widget only appears on chat pages (home, `/new`, `/chat/…`) and stays out of the way: it hides itself when an artifact or document panel would overlap it, and clamps to the viewport so it can never end up off-screen.
@@ -93,7 +92,6 @@ Click the toolbar icon on any claude.ai tab. Everything applies live — no relo
 | **Position & size** | Corner, offsets, width (always clamped on-screen) |
 | **Show / hide** | Each element individually; chat-pages-only mode |
 | **Clock format** | Days field, 12/24-hour |
-| **Sounds** | Completion / input-required chimes, volume, test buttons |
 
 <div align="center">
 <table>
@@ -107,7 +105,7 @@ Click the toolbar icon on any claude.ai tab. Everything applies live — no relo
 	</tr>
 	<tr>
 		<td align="center"><img src="docs/settings-visibility.png" width="340" alt="Show / hide settings"></td>
-		<td align="center"><img src="docs/settings-clock-sounds.png" width="340" alt="Clock format and sounds settings"></td>
+		<td align="center"><img src="docs/settings-clock.png" width="340" alt="Clock format settings"></td>
 	</tr>
 </table>
 </div>
@@ -130,7 +128,6 @@ Click the toolbar icon on any claude.ai tab. Everything applies live — no relo
 |---|---|
 | Widget not showing | Are you on a chat page? It intentionally hides on settings/projects/etc. (toggle "Only show on chat pages" in the popup). After a Safari restart, re-enable "Allow unsigned extensions". |
 | Widget disappeared mid-conversation | It auto-hides while an artifact or document panel overlaps it; close the panel and it returns. |
-| No sound | Sounds only play when the tab is *not* focused, and Safari blocks audio until you've interacted with the page once. Use the popup's Test buttons to check volume. |
 | Token bar seems wrong | The count is an approximation from a local tokenizer and excludes thinking blocks and images. Check the auto/manual context-limit setting if the percentage looks off. |
 
 ## Credits

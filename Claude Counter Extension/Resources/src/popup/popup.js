@@ -156,29 +156,6 @@
 		bindCheckbox('clockShowDays', 'clockShowDays');
 		bindCheckbox('lastPromptClock24h', 'lastPromptClock24h');
 
-		// sounds
-		bindCheckbox('soundOnCompleted', 'soundOnCompleted');
-		bindCheckbox('soundOnInputRequired', 'soundOnInputRequired');
-		bindRange('soundVolume', 'soundVolume', 'soundVolumeVal', '%');
-
-		// test buttons — play the sound directly from the popup (simplest + reliable;
-		// no tabs permission or content-script round-trip needed).
-		const runtimeForUrl = globalThis.browser?.runtime || globalThis.chrome?.runtime || null;
-		const playTest = (file) => {
-			try {
-				const url = runtimeForUrl?.getURL
-					? runtimeForUrl.getURL(`src/sounds/${file}`)
-					: `../sounds/${file}`;
-				const a = new Audio(url);
-				a.volume = Math.max(0, Math.min(1, (state.soundVolume ?? 70) / 100));
-				a.play().catch(() => {});
-			} catch {
-				// ignore
-			}
-		};
-		$('testCompleted').addEventListener('click', () => playTest(state.soundCompletedFile || 'glass.mp3'));
-		$('testInput').addEventListener('click', () => playTest(state.soundInputFile || 'basso.mp3'));
-
 		// reset
 		$('reset').addEventListener('click', async () => {
 			state = { ...DEFAULTS };
@@ -222,10 +199,6 @@
 		$('showTimeMarker').checked = state.showTimeMarker;
 		$('clockShowDays').checked = state.clockShowDays;
 		$('lastPromptClock24h').checked = state.lastPromptClock24h;
-		$('soundOnCompleted').checked = state.soundOnCompleted;
-		$('soundOnInputRequired').checked = state.soundOnInputRequired;
-		$('soundVolume').value = state.soundVolume;
-		$('soundVolumeVal').textContent = `${state.soundVolume}%`;
 	}
 
 	document.addEventListener('DOMContentLoaded', async () => {
