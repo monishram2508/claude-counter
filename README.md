@@ -31,6 +31,7 @@ Safari doesn't let you install extensions from a zip like Chrome does — a Safa
 | **Hover token counts** | Hover any message to see its individual token count. |
 | **Cache countdown** | How long the conversation stays prompt-cached (cheaper & faster to continue) after the last response. |
 | **Last prompt time** | Timestamp of the last completed response. |
+| **Light & dark themes** | Two independent colour palettes. The widget follows claude.ai's own light/dark setting automatically, or you can pin it to one. |
 | **Fully configurable** | Colors, thresholds, ring appearance, position, clock formats, per-element visibility — all live from the toolbar popup. |
 
 The widget only appears on chat pages (home, `/new`, `/chat/…`) and stays out of the way: it hides itself when an artifact or document panel would overlap it, and clamps to the viewport so it can never end up off-screen.
@@ -84,7 +85,8 @@ Click the toolbar icon on any claude.ai tab. Everything applies live — no relo
 
 | Section | What you can change |
 |---|---|
-| **Colors** | Fill, track, warning, text, time-marker colors; tick opacity |
+| **Theme** | Match Claude (default), always dark, or always light |
+| **Colors** | Fill, track, warning, text, time-marker colors and tick opacity — set separately for dark and light mode |
 | **Thresholds & behavior** | Warn percentage and style (recolor/pulse); auto vs. manual context limit |
 | **Ring appearance** | Thickness, tick spacing, rounded caps |
 | **Position & size** | Corner, offsets, width (always clamped on-screen) |
@@ -113,6 +115,7 @@ Click the toolbar icon on any claude.ai tab. Everything applies live — no relo
 - A small injected script wraps `window.fetch` on claude.ai to read the conversation tree, the `/usage` endpoint, and the live `message_limit` data in Claude's SSE stream. Nothing is modified — responses are cloned and parsed.
 - Token counts use a vendored `o200k_base` tokenizer running entirely in the page, so counts are approximate but close.
 - The model id is read from completion requests to pick the right context limit automatically.
+- Theme is resolved from claude.ai's own markup where possible, and otherwise from the page background's measured brightness, so the widget stays readable even if the site changes how it flags light and dark mode.
 
 ## Privacy
 
@@ -125,6 +128,7 @@ Click the toolbar icon on any claude.ai tab. Everything applies live — no relo
 | Problem | Fix |
 |---|---|
 | Widget not showing | Are you on a chat page? It intentionally hides on settings/projects/etc. (toggle "Only show on chat pages" in the popup). After a Safari restart, re-enable "Allow unsigned extensions". |
+| Text is hard to read after switching theme | The palette should follow claude.ai automatically. If it lags, set **Theme → Always light** (or dark) in the popup, and adjust that palette's colours to taste. |
 | Widget disappeared mid-conversation | It auto-hides while an artifact or document panel overlaps it; close the panel and it returns. |
 | Token bar seems wrong | The count is an approximation from a local tokenizer and excludes thinking blocks and images. Check the auto/manual context-limit setting if the percentage looks off. |
 | "Manifest file is missing or unreadable" | You selected the wrong folder. Pick `Claude Counter Extension/Resources` — the folder that directly contains `manifest.json` — not the repo root. See [Install on other browsers](#install-on-other-browsers). |
