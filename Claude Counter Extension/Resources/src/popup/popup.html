@@ -16,9 +16,22 @@
 	</div>
 
 	<div class="scroll">
-		<!-- COLORS -->
+		<!-- THEME -->
 		<section>
-			<h2>Colors</h2>
+			<h2>Theme</h2>
+			<div class="row">
+				<label for="themeMode">Palette</label>
+				<select id="themeMode">
+					<option value="auto">Match Claude</option>
+					<option value="dark">Always dark</option>
+					<option value="light">Always light</option>
+				</select>
+			</div>
+		</section>
+
+		<!-- COLORS (DARK) -->
+		<section>
+			<h2>Colors <span class="h2note">dark mode</span></h2>
 			<div class="row">
 				<label for="fillColor">Fill (orange)</label>
 				<input type="color" id="fillColor">
@@ -43,6 +56,36 @@
 				<label for="tickColorAlpha">Tick opacity</label>
 				<input type="range" id="tickColorAlpha" min="0" max="100" step="5">
 				<span class="val" id="tickColorAlphaVal"></span>
+			</div>
+		</section>
+
+		<!-- COLORS (LIGHT) -->
+		<section>
+			<h2>Colors <span class="h2note">light mode</span></h2>
+			<div class="row">
+				<label for="fillColorLight">Fill (orange)</label>
+				<input type="color" id="fillColorLight">
+			</div>
+			<div class="row">
+				<label for="trackColorLight">Unfilled track</label>
+				<input type="color" id="trackColorLight">
+			</div>
+			<div class="row">
+				<label for="warnColorLight">Warning</label>
+				<input type="color" id="warnColorLight">
+			</div>
+			<div class="row">
+				<label for="textColorLight">Text</label>
+				<input type="color" id="textColorLight">
+			</div>
+			<div class="row">
+				<label for="markerColorLight">Time marker</label>
+				<input type="color" id="markerColorLight">
+			</div>
+			<div class="row">
+				<label for="tickColorAlphaLight">Tick opacity</label>
+				<input type="range" id="tickColorAlphaLight" min="0" max="100" step="5">
+				<span class="val" id="tickColorAlphaLightVal"></span>
 			</div>
 		</section>
 

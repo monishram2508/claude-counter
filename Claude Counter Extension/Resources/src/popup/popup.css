@@ -206,3 +206,10 @@ select {
 .btn--ghost:hover {
 	background: #35322f;
 }
+
+.h2note {
+	text-transform: none;
+	letter-spacing: 0;
+	font-weight: 400;
+	opacity: 0.55;
+}

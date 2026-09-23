@@ -16,9 +16,9 @@
 		if (m) return Math.round(parseFloat(m[1]) * 100);
 		return 35;
 	}
-	function makeTickColor(alphaPct) {
+	function makeTickColor(alphaPct, light) {
 		const a = Math.max(0, Math.min(1, alphaPct / 100));
-		return `rgba(255,255,255,${a})`;
+		return light ? `rgba(0,0,0,${a})` : `rgba(255,255,255,${a})`;
 	}
 
 	let state = { ...DEFAULTS };
@@ -102,28 +102,43 @@
 		});
 	}
 
+	function bindTickAlpha(rangeId, valId, key, light) {
+		const el = $(rangeId);
+		const valEl = $(valId);
+		const initial = parseAlpha(state[key]);
+		el.value = initial;
+		valEl.textContent = `${initial}%`;
+		el.addEventListener('input', () => {
+			valEl.textContent = `${el.value}%`;
+			state[key] = makeTickColor(Number(el.value), light);
+			persist();
+		});
+	}
+
 	function bindAll() {
 		// master
 		bindCheckbox('enabled', 'enabled');
 
-		// colors
+		// theme
+		bindSelect('themeMode', 'themeMode', false);
+
+		// colors — dark
 		bindColor('fillColor', 'fillColor');
 		bindColor('trackColor', 'trackColor');
 		bindColor('warnColor', 'warnColor');
 		bindColor('textColor', 'textColor');
 		bindColor('markerColor', 'markerColor');
 
-		// tick alpha (special)
-		const tickEl = $('tickColorAlpha');
-		const tickValEl = $('tickColorAlphaVal');
-		const initAlpha = parseAlpha(state.tickColor);
-		tickEl.value = initAlpha;
-		tickValEl.textContent = `${initAlpha}%`;
-		tickEl.addEventListener('input', () => {
-			tickValEl.textContent = `${tickEl.value}%`;
-			state.tickColor = makeTickColor(Number(tickEl.value));
-			persist();
-		});
+		// colors — light
+		bindColor('fillColorLight', 'fillColorLight');
+		bindColor('trackColorLight', 'trackColorLight');
+		bindColor('warnColorLight', 'warnColorLight');
+		bindColor('textColorLight', 'textColorLight');
+		bindColor('markerColorLight', 'markerColorLight');
+
+		// tick alpha (special: stored as an rgba string, only alpha is editable)
+		bindTickAlpha('tickColorAlpha', 'tickColorAlphaVal', 'tickColor', false);
+		bindTickAlpha('tickColorAlphaLight', 'tickColorAlphaLightVal', 'tickColorLight', true);
 
 		// behavior
 		bindRange('warnThreshold', 'warnThreshold', 'warnThresholdVal', '%');
@@ -168,14 +183,23 @@
 	function refreshControls() {
 		// re-set all control values from state without rebinding listeners
 		$('enabled').checked = state.enabled;
+		$('themeMode').value = state.themeMode;
 		$('fillColor').value = state.fillColor;
 		$('trackColor').value = state.trackColor;
 		$('warnColor').value = state.warnColor;
 		$('textColor').value = state.textColor;
 		$('markerColor').value = state.markerColor;
+		$('fillColorLight').value = state.fillColorLight;
+		$('trackColorLight').value = state.trackColorLight;
+		$('warnColorLight').value = state.warnColorLight;
+		$('textColorLight').value = state.textColorLight;
+		$('markerColorLight').value = state.markerColorLight;
 		const a = parseAlpha(state.tickColor);
 		$('tickColorAlpha').value = a;
 		$('tickColorAlphaVal').textContent = `${a}%`;
+		const aLight = parseAlpha(state.tickColorLight);
+		$('tickColorAlphaLight').value = aLight;
+		$('tickColorAlphaLightVal').textContent = `${aLight}%`;
 		$('warnThreshold').value = state.warnThreshold;
 		$('warnThresholdVal').textContent = `${state.warnThreshold}%`;
 		$('warnStyle').value = state.warnStyle;
