@@ -259,6 +259,7 @@
 			this.cachedUntilMs = null;
 
 			this.ringSize = 96;
+			this.theme = 'dark'; // resolved by _detectTheme() before first paint
 			this.sidePanelOpen = false;
 			this.pageAllowed = true; // false on non-chat claude.ai pages
 			this.detectedLimit = null; // context limit inferred from the model id
@@ -267,16 +268,85 @@
 
 		_colors() {
 			const s = this.settings;
+			const light = this.theme === 'light';
 			return {
-				fill: s.fillColor,
-				track: s.trackColor,
-				warn: s.warnColor,
-				tick: s.tickColor,
-				text: s.textColor,
-				marker: s.markerColor,
+				fill: light ? s.fillColorLight : s.fillColor,
+				track: light ? s.trackColorLight : s.trackColor,
+				warn: light ? s.warnColorLight : s.warnColor,
+				tick: light ? s.tickColorLight : s.tickColor,
+				text: light ? s.textColorLight : s.textColor,
+				marker: light ? s.markerColorLight : s.markerColor,
 				// gap color = try to match page background; fall back to near-black.
 				gapColor: this._pageBg()
 			};
+		}
+
+		// Which palette to paint with: 'light' or 'dark'. In auto mode this
+		// follows claude.ai. The site marks its theme on <html>, but the exact
+		// attribute has changed across redesigns, so we check the usual suspects
+		// and then fall back to measuring how bright the page actually is —
+		// which works no matter what the markup calls things.
+		_detectTheme() {
+			const mode = this.settings.themeMode;
+			if (mode === 'dark' || mode === 'light') return mode;
+
+			try {
+				const root = document.documentElement;
+				const attr = (
+					root.getAttribute('data-mode') ||
+					root.getAttribute('data-theme') ||
+					root.getAttribute('data-color-scheme') ||
+					''
+				).toLowerCase();
+				if (attr.includes('dark')) return 'dark';
+				if (attr.includes('light')) return 'light';
+
+				if (root.classList.contains('dark')) return 'dark';
+				if (root.classList.contains('light')) return 'light';
+
+				const lum = this._pageLuminance();
+				if (lum !== null) return lum > 0.5 ? 'light' : 'dark';
+
+				if (window.matchMedia) {
+					return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+				}
+			} catch {
+				// fall through to the dark default
+			}
+			return 'dark';
+		}
+
+		// Relative luminance (0 = black, 1 = white) of the page background, or
+		// null when every candidate is fully transparent.
+		_pageLuminance() {
+			const parseRgb = (str) => {
+				const m = /rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+))?/.exec(str || '');
+				if (!m) return null;
+				const alpha = m[4] === undefined ? 1 : parseFloat(m[4]);
+				if (!alpha) return null; // transparent tells us nothing
+				return [parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])];
+			};
+
+			for (const el of [document.body, document.documentElement]) {
+				if (!el) continue;
+				const rgb = parseRgb(getComputedStyle(el).backgroundColor);
+				if (!rgb) continue;
+				const [r, g, b] = rgb.map((v) => {
+					const c = v / 255;
+					return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+				});
+				return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+			}
+			return null;
+		}
+
+		// Re-detect the theme and repaint if it flipped. Returns true on a flip.
+		_syncTheme() {
+			const next = this._detectTheme();
+			if (next === this.theme) return false;
+			this.theme = next;
+			this.applySettings(this.settings);
+			return true;
 		}
 
 		_pageBg() {
@@ -543,6 +613,8 @@
 			this.settings = s;
 			if (!this.root) return;
 
+			this.theme = this._detectTheme();
+			const light = this.theme === 'light';
 			const c = this._colors();
 
 			// master enable (combined with side-panel state)
@@ -554,6 +626,27 @@
 			this.root.style.setProperty('--cc-track', c.track);
 			this.root.style.setProperty('--cc-warn', c.warn);
 			this.root.style.setProperty('--cc-tick', c.tick);
+
+			// Panel chrome. A translucent tint reads well over a dark page but
+			// disappears over a light one, so light mode uses a more opaque fill,
+			// a firmer border, and a softer shadow.
+			this.root.classList.toggle('cc-light', light);
+			this.root.style.setProperty(
+				'--cc-panel',
+				`color-mix(in srgb, ${c.track} ${light ? '58%' : '22%'}, transparent)`
+			);
+			this.root.style.setProperty(
+				'--cc-border',
+				`color-mix(in srgb, ${c.text} ${light ? '18%' : '12%'}, transparent)`
+			);
+			this.root.style.setProperty(
+				'--cc-divider',
+				`color-mix(in srgb, ${c.text} ${light ? '16%' : '10%'}, transparent)`
+			);
+			this.root.style.setProperty(
+				'--cc-shadow',
+				light ? '0 6px 20px rgba(0, 0, 0, 0.12)' : '0 6px 24px rgba(0, 0, 0, 0.28)'
+			);
 
 			// width
 			this.root.style.width = `${s.widgetWidth}px`;
@@ -768,14 +861,19 @@
 			// The time-progress marker advances slowly; re-render rings about once a
 			// minute so the marker creeps forward without wasting work each second.
 			this._tickCounter = (this._tickCounter || 0) + 1;
+			// Safety net: catch a theme change the observers missed (claude.ai
+			// could switch it in a way we don't watch). Cheap — usually just an
+			// attribute read.
+			if (this._tickCounter % 5 === 0) this._syncTheme();
 			if (this._tickCounter % 60 === 0) {
 				this._renderRings();
 			}
 		}
 
-		// re-detect page bg (theme change) and re-render ring gaps
+		// Page attributes changed: the theme may have flipped, and even when it
+		// hasn't, the background showing through the ring slits may have.
 		refreshTheme() {
-			this._renderRings();
+			if (!this._syncTheme()) this._renderRings();
 		}
 	}
 

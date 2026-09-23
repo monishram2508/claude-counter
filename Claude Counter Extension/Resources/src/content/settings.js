@@ -10,13 +10,27 @@
 		// master
 		enabled: true,
 
-		// colors
+		// which palette to paint with. 'auto' follows claude.ai's own light/dark
+		// setting; the other two pin the widget to one palette regardless.
+		themeMode: 'auto', // 'auto' | 'dark' | 'light'
+
+		// colors — dark mode (the unsuffixed keys are the dark palette, kept
+		// under their original names so existing saved settings still apply)
 		fillColor: '#af6143',
 		trackColor: '#4a4340',
 		warnColor: '#ce2029',
 		tickColor: 'rgba(255,255,255,0.35)',
 		textColor: '#ffffff',
 		markerColor: '#ffffff',
+
+		// colors — light mode. Warm neutrals to sit on claude.ai's off-white,
+		// with near-black text/marker so nothing washes out.
+		fillColorLight: '#b5613c',
+		trackColorLight: '#ddd7cc',
+		warnColorLight: '#c0242b',
+		tickColorLight: 'rgba(0,0,0,0.22)',
+		textColorLight: '#2b2925',
+		markerColorLight: '#1a1918',
 
 		// time-progress marker (radial line showing elapsed fraction of the window)
 		showTimeMarker: true,

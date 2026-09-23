@@ -143,14 +143,31 @@
 		}
 		updatePageAllowed();
 
-		// Re-render ring gaps when the page theme flips.
+		// Repaint when the page theme flips. claude.ai has marked its theme with
+		// different attributes across redesigns, so watch the likely ones on both
+		// <html> and <body> rather than betting on one.
 		const themeObserver = new MutationObserver(() => {
 			if (CC.widget) CC.widget.refreshTheme();
 		});
+		const themeAttrs = ['data-mode', 'data-theme', 'data-color-scheme', 'class', 'style'];
 		themeObserver.observe(document.documentElement, {
 			attributes: true,
-			attributeFilter: ['data-mode', 'class', 'style']
+			attributeFilter: themeAttrs
 		});
+		if (document.body) {
+			themeObserver.observe(document.body, { attributes: true, attributeFilter: themeAttrs });
+		}
+
+		// A "system" theme setting follows the OS without touching the markup at
+		// all, so listen for the media query too.
+		if (window.matchMedia) {
+			const mq = window.matchMedia('(prefers-color-scheme: dark)');
+			const onSchemeChange = () => {
+				if (CC.widget) CC.widget.refreshTheme();
+			};
+			if (mq.addEventListener) mq.addEventListener('change', onSchemeChange);
+			else if (mq.addListener) mq.addListener(onSchemeChange);
+		}
 	})();
 
 	// Bridge must be ready before we can make requests
