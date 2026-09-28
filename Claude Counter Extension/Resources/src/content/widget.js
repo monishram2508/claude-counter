@@ -856,6 +856,10 @@
 
 		// called every second
 		tick() {
+			// The timer starts as soon as the content script loads, but build()
+			// only runs once settings have come back from storage. Until then
+			// every element below is still null.
+			if (!this.root) return;
 			this._renderClocks();
 			this._renderCache();
 			// The time-progress marker advances slowly; re-render rings about once a
