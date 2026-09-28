@@ -53,10 +53,10 @@ These apply to the **Safari** build only. Every other browser needs no Xcode, no
 ```sh
 git clone https://github.com/monishram2508/claude-counter.git
 cd claude-counter
-./scripts/build.sh --open
+./scripts/build.sh
 ```
 
-This builds the app into `build/` and opens it. (Alternatively: open `Claude Counter.xcodeproj` in Xcode and press ⌘R.)
+This builds the app, installs it to `~/Applications`, registers the extension with Safari, and restarts Safari. Run the same command any time you want to reinstall — it removes the previous install first. See [Rebuilding and reinstalling](#rebuilding-and-reinstalling) for the options.
 
 ### 2 · Allow unsigned extensions
 
@@ -74,7 +74,7 @@ The build is ad-hoc signed (no paid Apple Developer account required), so Safari
 2. Click the Claude Counter toolbar icon → allow access for **claude.ai**
 3. Open [claude.ai](https://claude.ai) — the widget appears in the top-right corner
 
-**Updating:** `git pull && ./scripts/build.sh --open`, then re-enable the extension if Safari asks.
+**Updating:** `git pull && ./scripts/build.sh`, then re-enable the extension if Safari asks.
 
 > [!TIP]
 > Have an Apple Developer account? Select your team under *Signing & Capabilities* for both targets in Xcode — the extension is then properly signed and the "Allow unsigned extensions" step (and its reset-on-quit annoyance) goes away.
@@ -127,6 +127,8 @@ Click the toolbar icon on any claude.ai tab. Everything applies live — no relo
 
 | Problem | Fix |
 |---|---|
+| Extension missing or misbehaving after a Safari restart | Reinstall: `./scripts/build.sh`. A stale registration is the usual cause. |
+| **Claude Counter** listed twice, or two widgets on the page | More than one copy of the app is on disk — each one registers as a separate extension. `./scripts/build.sh` removes the extras; empty your Trash if a copy is still in there. If a ghost entry survives, `./scripts/build.sh --deep`. |
 | Widget not showing | Are you on a chat page? It intentionally hides on settings/projects/etc. (toggle "Only show on chat pages" in the popup). After a Safari restart, re-enable "Allow unsigned extensions". |
 | Text is hard to read after switching theme | The palette should follow claude.ai automatically. If it lags, set **Theme → Always light** (or dark) in the popup, and adjust that palette's colours to taste. |
 | Widget disappeared mid-conversation | It auto-hides while an artifact or document panel overlaps it; close the panel and it returns. |
@@ -134,6 +136,35 @@ Click the toolbar icon on any claude.ai tab. Everything applies live — no relo
 | "Manifest file is missing or unreadable" | You selected the wrong folder. Pick `Claude Counter Extension/Resources` — the folder that directly contains `manifest.json` — not the repo root. See [Install on other browsers](#install-on-other-browsers). |
 | Extension vanished after restarting Firefox | Expected — Firefox discards temporary add-ons on quit. [Re-load it](#firefox). |
 | Widget loads but every value stays blank | The bridge script couldn't reach the page. Open the console and look for a Content-Security-Policy error naming `bridge.js` — see the [Firefox note](#firefox). |
+
+## Rebuilding and reinstalling
+
+`./scripts/build.sh` is a full reinstall, not just a build. It removes the previous install and its Safari registration, rebuilds, installs to `~/Applications`, re-registers the extension, and restarts Safari.
+
+That matters because Safari finds a web extension through the `.app` that contains it, and it tracks every copy separately:
+
+- **Building leaves the app where the next build deletes it.** `xcodebuild` writes to `build/` or `DerivedData/`, so Safari ends up pointing into a directory that no longer exists — the extension then goes stale or vanishes after a restart.
+- **Every copy of the app counts as its own extension.** `xcodebuild` registers what it builds with LaunchServices on its own, so a built copy *plus* an installed copy means Safari lists **Claude Counter** twice and two widgets draw on the page at once. Old copies still in the Trash count too.
+
+Installing one copy to a fixed path and clearing the others avoids both.
+
+| Flag | Effect |
+|---|---|
+| *(none)* | Full reinstall, restarting Safari |
+| `--keep-safari` | Same, but never quits or reopens Safari. The new build won't load until you restart Safari yourself |
+| `--build-only` | Compile only — leaves the install, the registration, and Safari alone |
+| `--deep` | Also rebuilds the LaunchServices database. For ghost entries that survive a normal reinstall |
+
+Set `CC_INSTALL_DIR` to install somewhere other than `~/Applications`.
+
+If you want a shell shortcut:
+
+```sh
+alias cc-rebuild='"$HOME/Developer/Claude Counter/scripts/build.sh"'
+```
+
+> [!NOTE]
+> A reinstall never touches your widget settings — those live in Safari's extension storage, not in the app bundle.
 
 ## Credits
 
@@ -232,4 +263,4 @@ Open [claude.ai](https://claude.ai). If the widget doesn't appear, click the ext
 |---|---|
 | Chromium | `git pull`, then click ↻ on the extension card |
 | Firefox | `git pull`, then load the temporary add-on again |
-| Safari | `git pull && ./scripts/build.sh --open` |
+| Safari | `git pull && ./scripts/build.sh` |
