@@ -65,7 +65,12 @@ build() {
 
 if (( build_only )); then
 	build
+	# xcodebuild registers what it builds with LaunchServices. Left alone, that
+	# copy becomes a second "Claude Counter" extension alongside the installed
+	# one. A build is not an install, so take the registration back out.
+	"$LSREGISTER" -u "$BUILT_APP" >/dev/null 2>&1 || true
 	printf '\nBuilt: %s\n' "$BUILT_APP"
+	printf 'Not installed. Run without --build-only to install it.\n'
 	exit 0
 fi
 
