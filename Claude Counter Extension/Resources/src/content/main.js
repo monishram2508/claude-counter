@@ -113,6 +113,7 @@
 	let usageResetMs = { five_hour: null, seven_day: null }; // cached parsed timestamps
 	let lastUsageSseMs = 0;
 	let usageFetchInFlight = false;
+	let lastUsageAttemptMs = 0;
 	let lastUsageUpdateMs = 0;
 	const rolloverHandledForResetMs = { five_hour: null, seven_day: null };
 
@@ -199,6 +200,9 @@
 
 		if (usageFetchInFlight) return;
 		usageFetchInFlight = true;
+		// Recorded whether or not the request succeeds, so a failing endpoint is
+		// retried on the poll interval rather than on every tick.
+		lastUsageAttemptMs = Date.now();
 		let raw;
 		try {
 			raw = await CC.bridge.requestUsage(orgId);
@@ -265,7 +269,11 @@
 		if (_postGenRefreshTimer) clearTimeout(_postGenRefreshTimer);
 		_postGenRefreshTimer = setTimeout(() => {
 			refreshConversation();
-		}, 1200);
+			// The rings normally move on the SSE message_limit event. Ask the usage
+			// endpoint too, so finishing a prompt still updates them when that
+			// event does not arrive.
+			refreshUsage();
+		}, CC.CONST.POST_GENERATION_DELAY_MS);
 	}
 
 	let _postGenRefreshTimer = null;
@@ -359,11 +367,15 @@
 			refreshUsage();
 		}
 
-		// Optional hourly safety refresh.
-		const ONE_HOUR_MS = 60 * 60 * 1000;
+		// Safety net. The rings are driven by the SSE message_limit event, which
+		// rides on claude.ai's own request shape and so can stop arriving without
+		// warning. Poll while the tab is in front, so the rings can never sit
+		// stale until the tab is reloaded.
 		const sseAge = now - lastUsageSseMs;
 		const anyAge = now - lastUsageUpdateMs;
-		if (!document.hidden && sseAge > ONE_HOUR_MS && anyAge > ONE_HOUR_MS) {
+		const attemptAge = now - lastUsageAttemptMs;
+		const poll = CC.CONST.USAGE_POLL_MS;
+		if (!document.hidden && sseAge > poll && anyAge > poll && attemptAge > poll) {
 			refreshUsage();
 		}
 	}
