@@ -56,7 +56,7 @@ cd claude-counter
 ./scripts/build.sh
 ```
 
-This builds the app, installs it to `~/Applications`, registers the extension with Safari, and restarts Safari. Run the same command any time you want to reinstall — it removes the previous install first. See [Rebuilding and reinstalling](#rebuilding-and-reinstalling) for the options.
+This builds the app, installs it to `~/Applications`, and registers the extension with Safari. It deliberately leaves Safari running. Run the same command any time you want to reinstall — it removes the previous install first. See [Rebuilding and reinstalling](#rebuilding-and-reinstalling) for the options.
 
 ### 2 · Allow unsigned extensions
 
@@ -66,7 +66,9 @@ The build is ad-hoc signed (no paid Apple Developer account required), so Safari
 2. Safari → Settings → **Developer** → check **"Allow unsigned extensions"** (asks for your password)
 
 > [!WARNING]
-> Safari resets **"Allow unsigned extensions"** every time Safari fully quits. If the widget disappears after a restart, re-enable it — your settings are kept.
+> Safari clears **"Allow unsigned extensions"** every time it fully quits, and no script can set it back — it is a deliberate security control, not an oversight. If the widget disappears after a restart, re-enable it; your settings are kept.
+>
+> This is why `./scripts/build.sh` leaves Safari running. Reinstalling without quitting Safari keeps the grant alive, so you only set it once per Safari session. The only way to remove the step entirely is a paid Apple Developer account — see the tip below.
 
 ### 3 · Enable the extension
 
@@ -150,10 +152,12 @@ Installing one copy to a fixed path and clearing the others avoids both.
 
 | Flag | Effect |
 |---|---|
-| *(none)* | Full reinstall, restarting Safari |
-| `--keep-safari` | Same, but never quits or reopens Safari. The new build won't load until you restart Safari yourself |
+| *(none)* | Full reinstall, leaving Safari running. Reload your claude.ai tab afterwards |
+| `--restart-safari` | Also quits and reopens Safari, reopening any tabs Safari does not restore itself. Costs you the **"Allow unsigned extensions"** grant |
 | `--build-only` | Compile only — leaves the install, the registration, and Safari alone |
 | `--deep` | Also rebuilds the LaunchServices database. For ghost entries that survive a normal reinstall |
+
+Reloading the tab is enough for a content-script change, which is most of them. Reach for `--restart-safari` when the extension itself looks wrong, or after a change to the native Swift code.
 
 Set `CC_INSTALL_DIR` to install somewhere other than `~/Applications`.
 

@@ -2,10 +2,15 @@
 # Build Claude Counter, replace any previous install, and re-register the
 # Safari extension.
 #
-#   ./scripts/build.sh                 clean reinstall (what you usually want)
-#   ./scripts/build.sh --keep-safari   same, but never quit or reopen Safari
-#   ./scripts/build.sh --build-only    just compile; change nothing else
-#   ./scripts/build.sh --deep          also rebuild the LaunchServices database
+#   ./scripts/build.sh                     clean reinstall, leaving Safari up
+#   ./scripts/build.sh --restart-safari    also quit and reopen Safari
+#   ./scripts/build.sh --build-only        just compile; change nothing else
+#   ./scripts/build.sh --deep              also rebuild the LaunchServices database
+#
+# Safari is left running by default, because quitting it costs you two things:
+# your tabs, and the "Allow unsigned extensions" grant, which Safari clears on
+# every full quit and will not let a script set. Reloading the claude.ai tab is
+# enough to pick up changed content scripts.
 #
 # Safari registers a web extension by the path of the .app that contains it, so
 # where the app lives matters more than it looks. Building into DerivedData and
@@ -31,16 +36,17 @@ INSTALLED_APP="$INSTALL_DIR/$APP_NAME"
 BUILT_APP="$BUILD_DIR/Build/Products/Debug/$APP_NAME"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 
-restart_safari=1
+restart_safari=0
 build_only=0
 deep=0
 for arg in "$@"; do
 	case "$arg" in
-		--keep-safari) restart_safari=0 ;;
+		--restart-safari) restart_safari=1 ;;
+		--keep-safari) restart_safari=0 ;; # now the default; kept so old muscle memory still works
 		--build-only)  build_only=1 ;;
 		--deep)        deep=1 ;;
 		--open)        ;; # accepted for compatibility: a reinstall always opens the app
-		-h|--help)     sed -n '2,18p' "$0" | cut -c3-; exit 0 ;;
+		-h|--help)     sed -n '2,23p' "$0" | cut -c3-; exit 0 ;;
 		*) printf 'unknown option: %s (try --help)\n' "$arg" >&2; exit 2 ;;
 	esac
 done
@@ -81,9 +87,32 @@ fi
 safari_was_running=0
 pgrep -xq Safari && safari_was_running=1
 
+SAVED_TABS="$(mktemp -t cc-tabs)"
+trap 'rm -f "$SAVED_TABS"' EXIT
+
+# Every http(s) tab Safari currently has open, one URL per line.
+capture_tabs() {
+	osascript <<'APPLESCRIPT' 2>/dev/null || true
+tell application "Safari"
+	set urlList to {}
+	repeat with w in windows
+		repeat with t in tabs of w
+			try
+				set u to URL of t
+				if u is not missing value and u starts with "http" then set end of urlList to u
+			end try
+		end repeat
+	end repeat
+	set AppleScript's text item delimiters to linefeed
+	return urlList as text
+end tell
+APPLESCRIPT
+}
+
 if (( restart_safari && safari_was_running )); then
 	step "Quitting Safari"
-	note "tabs come back when it reopens"
+	capture_tabs > "$SAVED_TABS"
+	note "saved $(grep -c . "$SAVED_TABS" || echo 0) tabs to reopen"
 	osascript -e 'tell application "Safari" to quit' >/dev/null 2>&1 || true
 	for _ in $(seq 1 50); do
 		pgrep -xq Safari || break
@@ -220,22 +249,51 @@ done
 if (( restart_safari && safari_was_running )); then
 	step "Reopening Safari"
 	open -a Safari
+	# Wait for it to be scriptable before asking what it restored.
+	for _ in $(seq 1 50); do
+		osascript -e 'tell application "Safari" to count windows' >/dev/null 2>&1 && break
+		sleep 0.2
+	done
+
+	# Safari restores the last session only when its own settings say to, so
+	# reopen whatever did not come back. Checking first avoids doubling tabs.
+	if [ -s "$SAVED_TABS" ]; then
+		already="$(capture_tabs)"
+		reopened=0
+		while IFS= read -r url; do
+			[ -n "$url" ] || continue
+			case "$already" in *"$url"*) continue ;; esac
+			open -a Safari "$url"
+			reopened=$((reopened + 1))
+		done < "$SAVED_TABS"
+		if (( reopened )); then
+			note "reopened $reopened tabs Safari did not restore"
+		else
+			note "Safari restored your tabs itself"
+		fi
+	fi
 fi
 
 if (( restart_safari && safari_was_running )); then
-	quit_note="Safari clears this every time it fully quits, including just now."
+	cat <<EOF
+
+${bold}Installed.${reset} Safari was restarted, so it has cleared
+${bold}Allow unsigned extensions${reset} and you need to set it again:
+
+  Settings -> Developer -> ${bold}Allow unsigned extensions${reset}
+  (Settings -> Advanced -> "Show features for web developers" reveals that tab.)
+
+Then check ${bold}Claude Counter${reset} under Settings -> Extensions if it is off.
+EOF
 else
-	quit_note="Safari clears this every time it fully quits."
+	cat <<EOF
+
+${bold}Installed.${reset} Reload your claude.ai tab to pick up the change.
+
+Safari was left running, so your tabs and your ${bold}Allow unsigned extensions${reset}
+grant are both still in place. If the tab reload is not enough, re-run with
+${bold}--restart-safari${reset} — that does clear the grant and you will have to set it again.
+EOF
 fi
 
-cat <<EOF
-
-${bold}Installed.${reset} Two things Safari only accepts from a human:
-
-  1. Settings -> Developer -> ${bold}Allow unsigned extensions${reset}
-     (Settings -> Advanced -> "Show features for web developers" reveals that tab.)
-     $quit_note
-  2. Settings -> Extensions -> enable ${bold}Claude Counter${reset}, then allow claude.ai.
-
-Your widget settings are untouched by a reinstall.
-EOF
+printf '\nYour widget settings are untouched by a reinstall.\n'
