@@ -256,6 +256,9 @@
 			this.weeklyResetMs = null;
 			this.totalTokens = null;
 			this.lastPromptMs = null;
+			// Anthropic's own count when the stream reports it; null falls back to
+			// the local estimate.
+			this.measuredContext = null;
 			this.cachedUntilMs = null;
 
 			this.ringSize = 96;
@@ -732,6 +735,13 @@
 			this._renderClocks();
 		}
 
+		setMeasuredContext(tokens) {
+			const v = typeof tokens === 'number' && tokens > 0 ? tokens : null;
+			if (v === this.measuredContext) return;
+			this.measuredContext = v;
+			this._renderChat();
+		}
+
 		setConversationMetrics({ totalTokens, lastPromptMs, cachedUntil } = {}) {
 			this.totalTokens = typeof totalTokens === 'number' ? totalTokens : null;
 			this.lastPromptMs = typeof lastPromptMs === 'number' ? lastPromptMs : null;
@@ -818,14 +828,19 @@
 			if (!this.root) return;
 			const s = this.settings;
 
-			// token bar
-			if (this.totalTokens != null) {
+			// token bar. The measured count is Anthropic's own and wins outright;
+			// the local estimate is a stand-in until a turn reports one, and is
+			// marked with a tilde so the two are never confused.
+			const measured = this.measuredContext;
+			const tokens = measured != null ? measured : this.totalTokens;
+			if (tokens != null) {
 				const scale = (s.autoContextScale !== false && this.detectedLimit)
 					? this.detectedLimit
 					: (s.contextScale || 200000);
-				const pct = Math.max(0, Math.min(100, (this.totalTokens / scale) * 100));
+				const pct = Math.max(0, Math.min(100, (tokens / scale) * 100));
+				const prefix = measured != null ? '' : '~';
 				this.tokenBarFill.style.width = `${pct}%`;
-				this.tokenValueEl.textContent = `${this.totalTokens.toLocaleString()} / ${scale.toLocaleString()}`;
+				this.tokenValueEl.textContent = `${prefix}${tokens.toLocaleString()} / ${scale.toLocaleString()}`;
 				this.tokenBarFill.classList.toggle('cc-warn', pct >= s.warnThreshold);
 			} else {
 				this.tokenBarFill.style.width = '0%';

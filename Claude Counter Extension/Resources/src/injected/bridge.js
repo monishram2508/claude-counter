@@ -125,6 +125,17 @@
 						if (json?.type === 'message_limit' && json.message_limit) {
 							post('cc:message_limit', json.message_limit);
 						}
+						// Anthropic reports the real prompt size here, counted with its
+						// own tokenizer and including the system prompt, tool schemas and
+						// images — everything a local estimate cannot see.
+						if (json?.type === 'message_start' && json.message?.usage) {
+							post('cc:token_usage', { phase: 'start', usage: json.message.usage });
+						}
+						// The reply's own tokens land on the final delta, and they become
+						// part of the prompt on the next turn.
+						if (json?.type === 'message_delta' && json.usage) {
+							post('cc:token_usage', { phase: 'delta', usage: json.usage });
+						}
 						if (json?.type === 'message_stop') {
 							sawStop = true;
 						}

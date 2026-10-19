@@ -114,6 +114,8 @@
 	let lastUsageSseMs = 0;
 	let usageFetchInFlight = false;
 	let lastUsageAttemptMs = 0;
+	// Prompt size as Anthropic itself counted it, or null when unmeasured.
+	let measuredContextTokens = null;
 	let lastUsageUpdateMs = 0;
 	const rolloverHandledForResetMs = { five_hour: null, seven_day: null };
 
@@ -256,6 +258,36 @@
 		}
 	}
 
+	// Cached tokens still occupy the context window — caching changes what a turn
+	// costs, not how much of the window it fills — so all three counts are summed.
+	function promptTokensFrom(usage) {
+		if (!usage || typeof usage !== 'object') return null;
+		const n = (v) => (typeof v === 'number' && isFinite(v) && v > 0 ? v : 0);
+		const total =
+			n(usage.input_tokens) +
+			n(usage.cache_creation_input_tokens) +
+			n(usage.cache_read_input_tokens);
+		return total > 0 ? total : null;
+	}
+
+	function setMeasuredContext(tokens) {
+		measuredContextTokens = tokens;
+		if (CC.widget) CC.widget.setMeasuredContext(tokens);
+	}
+
+	function handleTokenUsage({ phase, usage } = {}) {
+		if (phase === 'start') {
+			const prompt = promptTokensFrom(usage);
+			if (prompt != null) setMeasuredContext(prompt);
+			return;
+		}
+		if (phase === 'delta' && measuredContextTokens != null) {
+			// The assistant's reply is part of the prompt on the next turn.
+			const out = typeof usage?.output_tokens === 'number' ? usage.output_tokens : 0;
+			if (out > 0) setMeasuredContext(measuredContextTokens + out);
+		}
+	}
+
 	function handleMessageLimit(messageLimit) {
 		const parsed = parseUsageFromMessageLimit(messageLimit);
 		applyUsageUpdate(parsed, 'sse');
@@ -281,6 +313,7 @@
 	CC.bridge.on('cc:generation_start', handleGenerationStart);
 	CC.bridge.on('cc:conversation', handleConversationPayload);
 	CC.bridge.on('cc:message_limit', handleMessageLimit);
+	CC.bridge.on('cc:token_usage', handleTokenUsage);
 	CC.bridge.on('cc:generation_end', handleGenerationEnd);
 
 	async function handleUrlChange() {
@@ -295,6 +328,8 @@
 		if (currentConversationId !== previousConversationId) {
 			if (CC.widget) CC.widget.setConversationMetrics({});
 			if (CC.hoverTokens) CC.hoverTokens.setTrunk(null);
+			// The measured count described the old conversation's prompt.
+			setMeasuredContext(null);
 		}
 
 		if (!currentConversationId) return;
