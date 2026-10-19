@@ -260,8 +260,18 @@
 	flex-direction: row;
 	align-items: center;
 	gap: 14px;
-	padding: 7px 10px 7px 12px;
+	padding: 8px 11px 8px 13px;
 	white-space: nowrap;
+	/* One line-height for every item on the strip. Mixed line-heights give each
+	   flex item a different box height, and centring boxes of different heights
+	   leaves the text itself sitting at different levels. */
+	line-height: 1;
+}
+
+.cc-bar > * {
+	display: flex;
+	align-items: center;
+	line-height: 1;
 }
 
 .cc-bar__metric {
@@ -277,8 +287,8 @@
 }
 
 .cc-bar__pct {
-	font-size: 12px;
-	font-weight: 550;
+	font-size: 13px;
+	font-weight: 650;
 	font-variant-numeric: tabular-nums;
 	letter-spacing: 0.01em;
 	line-height: 1;
@@ -310,9 +320,17 @@
 }
 
 .cc-bar__clock {
-	font-size: 12px;
-	opacity: 0.82;
+	font-size: 13px;
+	font-weight: 550;
+	/* .cc-clock dims itself to 0.9 and aligns on the baseline, neither of which
+	   suits a single-line strip. */
+	opacity: 1;
 	line-height: 1;
+	align-items: center;
+}
+
+.cc-bar__clock .cc-clock__sep {
+	opacity: 0.55;
 }
 
 .cc-bar__toggle {
@@ -323,8 +341,8 @@
 	padding: 0 2px;
 	margin-left: -4px;
 	color: var(--cc-text);
-	opacity: 0.45;
-	font-size: 13px;
+	opacity: 0.55;
+	font-size: 14px;
 	line-height: 1;
 	cursor: pointer;
 	transition: transform 140ms ease, opacity 140ms ease;
