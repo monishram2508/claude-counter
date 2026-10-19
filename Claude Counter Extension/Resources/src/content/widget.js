@@ -264,6 +264,9 @@
 			this.ringSize = 96;
 			this.theme = 'dark'; // resolved by _detectTheme() before first paint
 			this.sidePanelOpen = false;
+			// Extra pixels applied on top of the configured offset to step clear of
+			// a floating panel. Transient — never written back to settings.
+			this.dodgeY = 0;
 			this.pageAllowed = true; // false on non-chat claude.ai pages
 			this.detectedLimit = null; // context limit inferred from the model id
 			this._panelObserver = null;
@@ -379,32 +382,38 @@
 		// chat surface) that overlaps the widget's own rectangle. If nothing
 		// overlaps the widget, there is nothing to avoid — stay visible.
 		// Fail-open: any uncertainty = show.
-		_detectSidePanel() {
+		// The rect the widget would occupy with no dodge applied.
+		_restingRect() {
+			const s = this.settings;
+			const live = this.root ? this.root.getBoundingClientRect() : null;
+			const width = (live && live.width) || s.widgetWidth || 250;
+			const height = (live && live.height) || 340;
+			const top = s.corner.startsWith('top')
+				? (s.offsetY || 0)
+				: window.innerHeight - (s.offsetY || 0) - height;
+			const left = s.corner.endsWith('right')
+				? window.innerWidth - (s.offsetX || 0) - width
+				: (s.offsetX || 0);
+			return { top, left, right: left + width, bottom: top + height, width, height };
+		}
+
+		_findObstruction() {
 			try {
-				if (!this.root) return false;
-				const w = this.root.getBoundingClientRect();
-				if (w.width === 0) {
-					// widget currently hidden: use its configured position instead
-					// (approximate rect from settings so we can decide to re-show)
-					const s = this.settings;
-					const width = s.widgetWidth || 250;
-					const height = 340;
-					const top = s.corner.startsWith('top') ? s.offsetY : window.innerHeight - s.offsetY - height;
-					const left = s.corner.endsWith('right')
-						? window.innerWidth - s.offsetX - width
-						: s.offsetX;
-					return this._anyPanelOverlaps({ top, left, right: left + width, bottom: top + height });
-				}
-				return this._anyPanelOverlaps(w);
+				if (!this.root) return null;
+				return this._panelOverlapping(this._restingRect());
 			} catch {
-				return false; // fail open
+				return null; // fail open
 			}
 		}
 
-		_anyPanelOverlaps(rect) {
-			// A "panel" = an element that is (a) at least 260px wide and 45% of the
-			// viewport tall, (b) positioned in the right portion of the screen, and
-			// (c) actually overlaps the widget's rectangle. Rather than scanning
+		_panelOverlapping(rect) {
+			// A "panel" = a floating element that overlaps the widget's rectangle.
+			// The old size floor (260px wide, 45% of viewport tall) was written for
+			// the artifact viewer and misses smaller panels — claude.ai's Outputs
+			// card is about a third of the viewport tall, so it slipped straight
+			// through and sat on top of the widget. The floor is now low enough to
+			// catch it, and a computed-position check keeps ordinary page content
+			// from tripping it. Rather than scanning
 			// every div on the page (which forced layout on thousands of elements
 			// several times a second while Claude streams), hit-test a few points
 			// inside the widget's own rect: document.elementsFromPoint returns the
@@ -425,13 +434,64 @@
 					seen.add(el);
 					if (el === this.root || this.root.contains(el) || el.contains(this.root)) continue;
 					const r = el.getBoundingClientRect();
-					if (r.width < 260 || r.height < vh * 0.45) continue; // too small to be a panel
-					if (r.left < vw * 0.4) continue; // panel sits in the right portion
+					if (r.width < 200 || r.height < vh * 0.12) continue; // too small to be a panel
+					if (r.left < vw * 0.35) continue; // panel sits in the right portion
 					if (r.width > vw * 0.95) continue; // not a full-width wrapper / the app root
-					return true;
+					// Page content scrolls with the document; a panel floats above it.
+					const pos = getComputedStyle(el).position;
+					if (pos !== 'fixed' && pos !== 'absolute' && pos !== 'sticky') continue;
+					return r;
 				}
 			}
-			return false;
+			return null;
+		}
+
+		// Step out of a panel's way instead of disappearing. Hiding is the last
+		// resort, for when there is genuinely nowhere to stand.
+		_applyObstruction(obstruction) {
+			const GAP = 12;
+			const MARGIN = 8;
+			const vh = window.innerHeight;
+			const s = this.settings;
+			const resting = this._restingRect();
+			const height = resting.height;
+
+			let dodge = 0;
+			let blocked = false;
+
+			// Only move for something actually in the way. A panel elsewhere on
+			// screen is not our problem, and treating it as one would hide the
+			// widget for no reason.
+			const inTheWay =
+				obstruction &&
+				obstruction.bottom > resting.top &&
+				obstruction.top < resting.bottom &&
+				obstruction.right > resting.left &&
+				obstruction.left < resting.right;
+
+			if (inTheWay) {
+				const anchoredTop = s.corner.startsWith('top');
+				if (anchoredTop) {
+					const wantedTop = obstruction.bottom + GAP;
+					dodge = Math.max(0, wantedTop - resting.top);
+					blocked = wantedTop + height > vh - MARGIN;
+				} else {
+					const wantedBottom = obstruction.top - GAP;
+					dodge = Math.max(0, resting.bottom - wantedBottom);
+					blocked = wantedBottom - height < MARGIN;
+				}
+			}
+
+			if (blocked) dodge = 0;
+
+			if (dodge !== this.dodgeY) {
+				this.dodgeY = dodge;
+				this._applyPosition();
+			}
+			if (blocked !== this.sidePanelOpen) {
+				this.sidePanelOpen = blocked;
+				this._applyVisibility();
+			}
 		}
 
 		_watchSidePanel() {
@@ -439,19 +499,15 @@
 			let debounceTimer = null;
 			const recheck = () => {
 				if (document.hidden) return; // nothing visible to avoid; recheck on next mutation
-				const open = this._detectSidePanel();
+				const obstruction = this._findObstruction();
 				if (CC.__ccDebug) {
 					console.log('[CC] panel check:', {
-						open,
-						widgetHiddenNow: this.sidePanelOpen,
-						innerWidth: window.innerWidth,
-						innerHeight: window.innerHeight
+						obstruction: obstruction && { top: obstruction.top, bottom: obstruction.bottom },
+						dodgeY: this.dodgeY,
+						hidden: this.sidePanelOpen
 					});
 				}
-				if (open !== this.sidePanelOpen) {
-					this.sidePanelOpen = open;
-					this._applyVisibility();
-				}
+				this._applyObstruction(obstruction);
 			};
 			const scheduleRecheck = () => {
 				if (debounceTimer) return;
@@ -702,7 +758,7 @@
 			const width = s.widgetWidth || rect.width || 250;
 			const maxY = Math.max(0, window.innerHeight - height - margin);
 			const maxX = Math.max(0, window.innerWidth - width - margin);
-			const y = Math.min(Math.max(0, s.offsetY || 0), maxY);
+			const y = Math.min(Math.max(0, (s.offsetY || 0) + this.dodgeY), maxY);
 			const x = Math.min(Math.max(0, s.offsetX || 0), maxX);
 			this.root.style[vertical] = `${y}px`;
 			this.root.style[horizontal] = `${x}px`;
