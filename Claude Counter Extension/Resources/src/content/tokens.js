@@ -44,27 +44,53 @@
 		}
 	}
 
+	// claude.ai has renamed these fields before. Read the alternates rather than
+	// returning nothing, which is what made the whole row go blank.
+	function messageSender(message) {
+		const sender = message?.sender ?? message?.role;
+		return typeof sender === 'string' ? sender.toLowerCase() : null;
+	}
+
+	function messageTimeMs(message) {
+		const raw = message?.created_at ?? message?.updated_at ?? message?.timestamp;
+		if (!raw) return null;
+		const ms = Date.parse(raw);
+		return Number.isNaN(ms) ? null : ms;
+	}
+
 	function buildTrunk(conversation) {
 		const messages = Array.isArray(conversation?.chat_messages) ? conversation.chat_messages : [];
+		if (messages.length === 0) return [];
+
 		const byId = new Map();
 		for (const msg of messages) {
 			if (msg?.uuid) byId.set(msg.uuid, msg);
 		}
 
+		// Preferred path: walk the active branch from the leaf back to the root, so
+		// edited-away and retried messages are left out of the count.
 		const leaf = conversation?.current_leaf_message_uuid;
-		if (!leaf) return [];
-
-		const trunk = [];
-		let currentId = leaf;
-		while (currentId && currentId !== ROOT_MESSAGE_ID) {
-			const msg = byId.get(currentId);
-			if (!msg) break;
-			trunk.push(msg);
-			currentId = msg.parent_message_uuid;
+		if (leaf) {
+			const trunk = [];
+			let currentId = leaf;
+			while (currentId && currentId !== ROOT_MESSAGE_ID) {
+				const msg = byId.get(currentId);
+				if (!msg) break;
+				trunk.push(msg);
+				currentId = msg.parent_message_uuid;
+			}
+			if (trunk.length > 0) {
+				trunk.reverse();
+				return trunk;
+			}
 		}
 
-		trunk.reverse();
-		return trunk;
+		// No usable leaf pointer. Fall back to every message in time order: that
+		// counts abandoned branches too and so reads high, but a high number beats
+		// an empty widget when the tree shape changes under us.
+		return messages
+			.slice()
+			.sort((a, b) => (messageTimeMs(a) ?? 0) - (messageTimeMs(b) ?? 0));
 	}
 
 	function isCountableContentItem(item) {
@@ -185,9 +211,9 @@
 		let lastAssistantMs = null;
 
 		for (const msg of trunk) {
-			if (msg?.sender === 'assistant' && msg?.created_at) {
-				const msgMs = Date.parse(msg.created_at);
-				if (!lastAssistantMs || msgMs > lastAssistantMs) {
+			if (messageSender(msg) === 'assistant') {
+				const msgMs = messageTimeMs(msg);
+				if (msgMs != null && (!lastAssistantMs || msgMs > lastAssistantMs)) {
 					lastAssistantMs = msgMs;
 				}
 			}
