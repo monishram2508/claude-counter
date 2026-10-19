@@ -223,6 +223,14 @@ copies="$("$LSREGISTER" -dump 2>/dev/null \
 	| sed -n 's/^path:[[:space:]]*\(.*\/'"$APP_NAME"'\)[[:space:]]*(.*$/\1/p' \
 	| sort -u | grep -c . || true)"
 
+# A registration can show up and then fall away again when the bundle was
+# replaced under a running Safari, so confirm it is still there a moment later
+# rather than trusting the first answer.
+if [ -n "$registered" ]; then
+	sleep 2
+	registered="$(pluginkit -m -i "$EXT_BUNDLE_ID" 2>/dev/null || true)"
+fi
+
 if [ -n "$registered" ]; then
 	note "$EXT_BUNDLE_ID is registered with Safari"
 	if [ "${copies:-1}" -gt 1 ]; then
@@ -286,14 +294,30 @@ ${bold}Allow unsigned extensions${reset} and you need to set it again:
 Then check ${bold}Claude Counter${reset} under Settings -> Extensions if it is off.
 EOF
 else
-	cat <<EOF
+	if (( safari_was_running )); then
+		cat <<EOF
 
-${bold}Installed.${reset} Reload your claude.ai tab to pick up the change.
+${bold}Installed — but Safari is still running the build it launched with.${reset}
 
-Safari was left running, so your tabs and your ${bold}Allow unsigned extensions${reset}
-grant are both still in place. If the tab reload is not enough, re-run with
-${bold}--restart-safari${reset} — that does clear the grant and you will have to set it again.
+Safari binds an extension when it starts and holds that bundle for the life of
+the process, so replacing it underneath only reliably takes effect once Safari
+restarts. A tab reload is often enough for a content-script change and is worth
+trying first, but if the widget looks unchanged, that is why:
+
+  ${bold}./scripts/build.sh --restart-safari${reset}
+
+That restarts Safari and reopens your tabs, at the cost of the
+${bold}Allow unsigned extensions${reset} grant, which you will have to set again.
 EOF
+	else
+		cat <<EOF
+
+${bold}Installed.${reset} Start Safari and enable the extension:
+
+  Settings -> Developer -> ${bold}Allow unsigned extensions${reset}
+  Settings -> Extensions -> ${bold}Claude Counter${reset}
+EOF
+	fi
 fi
 
 printf '\nYour widget settings are untouched by a reinstall.\n'
