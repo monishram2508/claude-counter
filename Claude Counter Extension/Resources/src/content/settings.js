@@ -10,6 +10,14 @@
 		// master
 		enabled: true,
 
+		// Which shape the widget takes. 'bar' is a slim strip that expands on
+		// hover; 'panel' is the original stacked card, kept as a preset.
+		layout: 'bar', // 'bar' | 'panel'
+
+		// Give each metric its own hue, so you identify it by colour before you
+		// read the label. Set all three the same for a monochrome widget.
+		spectrum: true,
+
 		// which palette to paint with. 'auto' follows claude.ai's own light/dark
 		// setting; the other two pin the widget to one palette regardless.
 		themeMode: 'auto', // 'auto' | 'dark' | 'light'
@@ -17,6 +25,9 @@
 		// colors — dark mode (the unsuffixed keys are the dark palette, kept
 		// under their original names so existing saved settings still apply)
 		fillColor: '#af6143',
+		sessionColor: '#e8915c',
+		weeklyColor: '#9b8cf0',
+		contextColor: '#4fc9b0',
 		trackColor: '#4a4340',
 		warnColor: '#ce2029',
 		tickColor: 'rgba(255,255,255,0.35)',
@@ -26,6 +37,9 @@
 		// colors — light mode. Warm neutrals to sit on claude.ai's off-white,
 		// with near-black text/marker so nothing washes out.
 		fillColorLight: '#b5613c',
+		sessionColorLight: '#bd5f2a',
+		weeklyColorLight: '#6245cc',
+		contextColorLight: '#15806c',
 		trackColorLight: '#ddd7cc',
 		warnColorLight: '#c0242b',
 		tickColorLight: 'rgba(0,0,0,0.22)',

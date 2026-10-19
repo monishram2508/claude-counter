@@ -120,10 +120,16 @@
 		bindCheckbox('enabled', 'enabled');
 
 		// theme
+		bindSelect('layout', 'layout', false);
+		bindCheckbox('spectrum', 'spectrum');
+
 		bindSelect('themeMode', 'themeMode', false);
 
 		// colors — dark
 		bindColor('fillColor', 'fillColor');
+		bindColor('sessionColor', 'sessionColor');
+		bindColor('weeklyColor', 'weeklyColor');
+		bindColor('contextColor', 'contextColor');
 		bindColor('trackColor', 'trackColor');
 		bindColor('warnColor', 'warnColor');
 		bindColor('textColor', 'textColor');
@@ -131,6 +137,9 @@
 
 		// colors — light
 		bindColor('fillColorLight', 'fillColorLight');
+		bindColor('sessionColorLight', 'sessionColorLight');
+		bindColor('weeklyColorLight', 'weeklyColorLight');
+		bindColor('contextColorLight', 'contextColorLight');
 		bindColor('trackColorLight', 'trackColorLight');
 		bindColor('warnColorLight', 'warnColorLight');
 		bindColor('textColorLight', 'textColorLight');

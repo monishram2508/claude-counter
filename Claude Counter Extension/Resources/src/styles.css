@@ -227,3 +227,159 @@
 .cc-pulse {
 	animation: cc-pulse-kf 1.4s ease-in-out infinite;
 }
+
+/* ============================================================
+   Slim bar layout
+   One glanceable strip; detail rows unfold beneath it on hover.
+   Metric hues come from --cc-session / --cc-weekly / --cc-context,
+   set inline by widget.js.
+   ============================================================ */
+
+.cc-widget--bar {
+	--cc-session: var(--cc-fill);
+	--cc-weekly: var(--cc-fill);
+	--cc-context: var(--cc-fill);
+
+	width: auto;
+	max-width: min(92vw, 560px);
+	gap: 0;
+	padding: 0;
+	border-radius: 999px;
+	/* The pill rounds fully at rest and relaxes to a card once the rows show,
+	   so the corners never fight the straight edges underneath. */
+	transition: border-radius 140ms ease;
+}
+
+.cc-widget--bar:hover,
+.cc-widget--bar.cc-bar--pinned {
+	border-radius: 16px;
+}
+
+.cc-bar {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 14px;
+	padding: 7px 10px 7px 12px;
+	white-space: nowrap;
+}
+
+.cc-bar__metric {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+}
+
+.cc-bar__metric svg {
+	display: block;
+	flex: 0 0 auto;
+}
+
+.cc-bar__pct {
+	font-size: 12px;
+	font-weight: 550;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.01em;
+	line-height: 1;
+}
+
+.cc-bar__metric--session .cc-bar__pct {
+	color: var(--cc-session);
+}
+
+.cc-bar__metric--weekly .cc-bar__pct {
+	color: var(--cc-weekly);
+}
+
+.cc-bar__ctx {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 7px;
+}
+
+.cc-bar__ctx .cc-bar__pct {
+	color: var(--cc-context);
+}
+
+/* The strip's bar is a compact fixed width; the panel layout's is fluid. */
+.cc-bar__ctx .cc-tokenBar {
+	width: 58px;
+	flex: 0 0 auto;
+}
+
+.cc-bar__clock {
+	font-size: 12px;
+	opacity: 0.82;
+	line-height: 1;
+}
+
+.cc-bar__toggle {
+	appearance: none;
+	-webkit-appearance: none;
+	background: transparent;
+	border: 0;
+	padding: 0 2px;
+	margin-left: -4px;
+	color: var(--cc-text);
+	opacity: 0.45;
+	font-size: 13px;
+	line-height: 1;
+	cursor: pointer;
+	transition: transform 140ms ease, opacity 140ms ease;
+}
+
+.cc-bar__toggle:hover {
+	opacity: 0.9;
+}
+
+.cc-widget--bar:hover .cc-bar__toggle,
+.cc-widget--bar.cc-bar--pinned .cc-bar__toggle {
+	transform: rotate(180deg);
+}
+
+/* --- the fold --- */
+.cc-bar__details {
+	display: grid;
+	grid-template-rows: 0fr;
+	overflow: hidden;
+	opacity: 0;
+	transition: grid-template-rows 160ms ease, opacity 120ms ease;
+}
+
+.cc-widget--bar:hover .cc-bar__details,
+.cc-widget--bar.cc-bar--pinned .cc-bar__details {
+	grid-template-rows: 1fr;
+	opacity: 1;
+}
+
+/* The wrapper is the single collapsible child; padding lives on it so no
+   sliver of it shows while the fold is shut. */
+.cc-bar__detailsInner {
+	min-height: 0;
+	overflow: hidden;
+	padding: 0 12px 10px;
+}
+
+.cc-bar__details .cc-chatRow {
+	padding: 3px 0;
+}
+
+.cc-bar__details .cc-widget__divider {
+	margin-bottom: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cc-widget--bar,
+	.cc-bar__details,
+	.cc-bar__toggle {
+		transition: none;
+	}
+}
+
+/* The panel's bar carries tick slits; at 58px wide they read as hatching
+   rather than divisions, so the strip's bar stays plain. */
+.cc-bar__ctx .cc-tokenBar::after {
+	display: none;
+}

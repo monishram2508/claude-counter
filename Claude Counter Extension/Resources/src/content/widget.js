@@ -275,8 +275,18 @@
 		_colors() {
 			const s = this.settings;
 			const light = this.theme === 'light';
+			const base = light ? s.fillColorLight : s.fillColor;
+			// Spectrum off collapses every metric back onto the single fill colour,
+			// which is what the original widget did.
+			const hue = (dark, lite) => {
+				if (s.spectrum === false) return base;
+				return (light ? lite : dark) || base;
+			};
 			return {
-				fill: light ? s.fillColorLight : s.fillColor,
+				fill: base,
+				session: hue(s.sessionColor, s.sessionColorLight),
+				weekly: hue(s.weeklyColor, s.weeklyColorLight),
+				context: hue(s.contextColor, s.contextColorLight),
 				track: light ? s.trackColorLight : s.trackColor,
 				warn: light ? s.warnColorLight : s.warnColor,
 				tick: light ? s.tickColorLight : s.tickColor,
@@ -554,6 +564,33 @@
 			this.root.className = 'cc-widget';
 			this.root.setAttribute('data-cc-widget', 'true');
 
+			// Record what we built before applySettings runs, or it will think the
+			// layout changed and rebuild on top of itself.
+			this._builtLayout = s.layout === 'panel' ? 'panel' : 'bar';
+			this.root.classList.add(`cc-widget--${this._builtLayout}`);
+
+			if (this._builtLayout === 'panel') this._buildPanelLayout();
+			else this._buildBarLayout();
+
+			document.body.appendChild(this.root);
+
+			this.applySettings(this.settings);
+			this._renderAll();
+			this._watchSidePanel();
+		}
+
+		// Swap layouts in place. Every element reference is rebuilt, so this has to
+		// tear the old tree down rather than patch it.
+		_rebuildForLayout() {
+			const old = this.root;
+			this.root = null;
+			if (old) old.remove();
+			this.build();
+		}
+
+		_buildPanelLayout() {
+			const s = this.settings;
+
 			// --- rings row ---
 			const ringsRow = document.createElement('div');
 			ringsRow.className = 'cc-widget__rings';
@@ -631,12 +668,124 @@
 			this.chatBlock.appendChild(this.cacheRow);
 
 			this.root.appendChild(this.chatBlock);
+		}
 
-			document.body.appendChild(this.root);
+		// The slim strip: everything you glance at stays on one line, and the
+		// detail rows unfold underneath on hover.
+		_buildBarLayout() {
+			const s = this.settings;
+			const BAR_RING = 20;
 
-			this.applySettings(this.settings);
-			this._renderAll();
-			this._watchSidePanel();
+			const strip = document.createElement('div');
+			strip.className = 'cc-bar';
+
+			const metric = (kind, ring) => {
+				const block = document.createElement('div');
+				block.className = `cc-bar__metric cc-bar__metric--${kind}`;
+				block.appendChild(ring.svg);
+				const pct = document.createElement('span');
+				pct.className = 'cc-bar__pct';
+				pct.textContent = '0%';
+				block.appendChild(pct);
+				return { block, pctEl: pct };
+			};
+
+			this.sessionRing = new Ring(BAR_RING);
+			this.weeklyRing = new Ring(BAR_RING);
+			const sessionMetric = metric('session', this.sessionRing);
+			const weeklyMetric = metric('weekly', this.weeklyRing);
+			this.sessionPctEl = sessionMetric.pctEl;
+			this.weeklyPctEl = weeklyMetric.pctEl;
+			// applySettings reaches for .block on these, same as the panel layout.
+			this.sessionBlock = { block: sessionMetric.block };
+			this.weeklyBlock = { block: weeklyMetric.block };
+			strip.appendChild(sessionMetric.block);
+			strip.appendChild(weeklyMetric.block);
+
+			// context: bar plus its own percentage
+			this.ctxGroup = document.createElement('div');
+			this.ctxGroup.className = 'cc-bar__ctx';
+			this.tokenBarWrap = document.createElement('div');
+			this.tokenBarWrap.className = 'cc-tokenBar';
+			this.tokenBarFill = document.createElement('div');
+			this.tokenBarFill.className = 'cc-tokenBar__fill';
+			this.tokenBarWrap.appendChild(this.tokenBarFill);
+			this.ctxPctEl = document.createElement('span');
+			this.ctxPctEl.className = 'cc-bar__pct';
+			this.ctxPctEl.textContent = '—';
+			this.ctxGroup.appendChild(this.tokenBarWrap);
+			this.ctxGroup.appendChild(this.ctxPctEl);
+			strip.appendChild(this.ctxGroup);
+
+			// the session countdown is the one clock worth seeing at rest
+			this.sessionClock = buildSegmentedClock(false);
+			this.sessionClock.wrap.classList.add('cc-bar__clock');
+			strip.appendChild(this.sessionClock.wrap);
+
+			const toggle = document.createElement('button');
+			toggle.className = 'cc-bar__toggle';
+			toggle.type = 'button';
+			toggle.setAttribute('aria-label', 'Toggle details');
+			toggle.textContent = '⌄';
+			// Hover reveals; clicking pins it open so it survives the pointer leaving.
+			toggle.addEventListener('click', (e) => {
+				e.stopPropagation();
+				this.root.classList.toggle('cc-bar--pinned');
+			});
+			strip.appendChild(toggle);
+
+			this.root.appendChild(strip);
+
+			// --- details, revealed on hover ---
+			this.chatBlock = document.createElement('div');
+			this.chatBlock.className = 'cc-bar__details';
+			// grid-template-rows: 0fr only collapses a single child, so everything
+			// that unfolds lives inside one wrapper.
+			const inner = document.createElement('div');
+			inner.className = 'cc-bar__detailsInner';
+			this.chatBlock.appendChild(inner);
+			this.chatDivider = document.createElement('div');
+			this.chatDivider.className = 'cc-widget__divider';
+			inner.appendChild(this.chatDivider);
+
+			const row = (label) => {
+				const el = document.createElement('div');
+				el.className = 'cc-chatRow cc-chatRow--inline';
+				const l = document.createElement('span');
+				l.className = 'cc-chatRow__label';
+				l.textContent = label;
+				el.appendChild(l);
+				return el;
+			};
+
+			this.weeklyRow = row('weekly resets');
+			this.weeklyClock = buildSegmentedClock(s.clockShowDays);
+			this.weeklyClock.wrap.classList.add('cc-chatRow__value');
+			this.weeklyRow.appendChild(this.weeklyClock.wrap);
+			inner.appendChild(this.weeklyRow);
+
+			this.tokenRow = row('context');
+			this.tokenValueEl = document.createElement('span');
+			this.tokenValueEl.className = 'cc-chatRow__value cc-mono';
+			this.tokenValueEl.textContent = '—';
+			this.tokenRow.appendChild(this.tokenValueEl);
+			inner.appendChild(this.tokenRow);
+
+			this.lastPromptRow = row('last prompt');
+			this.lastPromptEl = document.createElement('span');
+			this.lastPromptEl.className = 'cc-chatRow__value cc-mono';
+			this.lastPromptEl.textContent = '—';
+			this.lastPromptRow.appendChild(this.lastPromptEl);
+			inner.appendChild(this.lastPromptRow);
+
+			this.cacheRow = row('cache');
+			this.cacheClockValue = document.createElement('span');
+			this.cacheClockValue.className = 'cc-chatRow__value cc-mono';
+			this.cacheClockValue.textContent = '—';
+			this.cacheRow.appendChild(this.cacheClockValue);
+			inner.appendChild(this.cacheRow);
+
+			this.root.appendChild(this.chatBlock);
 		}
 
 		_buildRingBlock(title, kind) {
@@ -672,6 +821,15 @@
 			this.settings = s;
 			if (!this.root) return;
 
+			// Switching preset replaces the whole tree; nothing below would apply
+			// to the elements we are about to throw away.
+			const wantedLayout = s.layout === 'panel' ? 'panel' : 'bar';
+			if (this._builtLayout && this._builtLayout !== wantedLayout) {
+				this._rebuildForLayout();
+				return;
+			}
+			const isBar = wantedLayout === 'bar';
+
 			this.theme = this._detectTheme();
 			const light = this.theme === 'light';
 			const c = this._colors();
@@ -685,6 +843,9 @@
 			this.root.style.setProperty('--cc-track', c.track);
 			this.root.style.setProperty('--cc-warn', c.warn);
 			this.root.style.setProperty('--cc-tick', c.tick);
+			this.root.style.setProperty('--cc-session', c.session);
+			this.root.style.setProperty('--cc-weekly', c.weekly);
+			this.root.style.setProperty('--cc-context', c.context);
 
 			// Panel chrome. A translucent tint reads well over a dark page but
 			// disappears over a light one, so light mode uses a more opaque fill,
@@ -707,8 +868,8 @@
 				light ? '0 6px 20px rgba(0, 0, 0, 0.12)' : '0 6px 24px rgba(0, 0, 0, 0.28)'
 			);
 
-			// width
-			this.root.style.width = `${s.widgetWidth}px`;
+			// width. The bar is only as wide as what it holds.
+			this.root.style.width = isBar ? '' : `${s.widgetWidth}px`;
 
 			// position (clamped to the viewport)
 			this._applyPosition();
@@ -722,6 +883,8 @@
 			this.weeklyBlock.block.classList.toggle('cc-hidden', !s.showWeeklyRing);
 
 			// show/hide chat rows
+			if (this.ctxGroup) this.ctxGroup.classList.toggle('cc-hidden', !s.showTokenBar);
+			if (this.weeklyRow) this.weeklyRow.classList.toggle('cc-hidden', !s.showWeeklyRing);
 			this.tokenRow.classList.toggle('cc-hidden', !s.showTokenBar);
 			this.lastPromptRow.classList.toggle('cc-hidden', !s.showLastPrompt);
 			this.cacheRow.classList.toggle('cc-hidden', !s.showCacheCountdown);
@@ -732,7 +895,9 @@
 			this.chatDivider.classList.toggle('cc-hidden', !anyChat);
 
 			// rebuild clocks if day-visibility changed
-			this._syncClockFields(this.sessionClock, s.clockShowDays, this.sessionBlock);
+			// A session window is five hours, so its days group is always 00. On the
+			// strip that is three wasted characters, so drop it there.
+			this._syncClockFields(this.sessionClock, isBar ? false : s.clockShowDays, this.sessionBlock);
 			this._syncClockFields(this.weeklyClock, s.clockShowDays, this.weeklyBlock);
 
 			this._renderAll();
@@ -831,11 +996,11 @@
 				return Math.max(0, Math.min(100, frac * 100));
 			};
 
-			const renderOne = (ring, pctEl, util, markerPct) => {
+			const renderOne = (ring, pctEl, util, markerPct, metricColor) => {
 				if (!ring) return;
 				const pct = util ?? 0;
 				const warn = pct >= s.warnThreshold;
-				const fill = warn ? c.warn : c.fill;
+				const fill = warn ? c.warn : metricColor;
 				ring.render(
 					pct,
 					{ fill, track: c.track, gapColor: c.gapColor, marker: c.marker },
@@ -857,13 +1022,15 @@
 				this.sessionRing,
 				this.sessionPctEl,
 				this.sessionUtil,
-				elapsedPct(this.sessionResetMs, SESSION_MS)
+				elapsedPct(this.sessionResetMs, SESSION_MS),
+				c.session
 			);
 			renderOne(
 				this.weeklyRing,
 				this.weeklyPctEl,
 				this.weeklyUtil,
-				elapsedPct(this.weeklyResetMs, WEEKLY_MS)
+				elapsedPct(this.weeklyResetMs, WEEKLY_MS),
+				c.weekly
 			);
 		}
 
@@ -895,13 +1062,17 @@
 					: (s.contextScale || 200000);
 				const pct = Math.max(0, Math.min(100, (tokens / scale) * 100));
 				const prefix = measured != null ? '' : '~';
+				const c = this._colors();
 				this.tokenBarFill.style.width = `${pct}%`;
+				this.tokenBarFill.style.background = pct >= s.warnThreshold ? c.warn : c.context;
+				if (this.ctxPctEl) this.ctxPctEl.textContent = `${Math.round(pct)}%`;
 				this.tokenValueEl.textContent = `${prefix}${tokens.toLocaleString()} / ${scale.toLocaleString()}`;
 				this.tokenBarFill.classList.toggle('cc-warn', pct >= s.warnThreshold);
 			} else {
 				this.tokenBarFill.style.width = '0%';
 				this.tokenValueEl.textContent = '—';
 				this.tokenBarFill.classList.remove('cc-warn');
+				if (this.ctxPctEl) this.ctxPctEl.textContent = '—';
 			}
 
 			// last prompt
