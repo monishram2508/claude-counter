@@ -4,6 +4,16 @@
 	const CC = (globalThis.ClaudeCounter = globalThis.ClaudeCounter || {});
 	const SVGNS = 'http://www.w3.org/2000/svg';
 
+	// ---- narrow-window compacting ----
+	// On a wide monitor claude.ai's message column leaves a gutter big enough for
+	// the whole strip. On a laptop the column is the same width but the window
+	// isn't, so the gutter shrinks and the strip ends up sitting on the text.
+	// These govern when the strip sheds its widest parts to fit the gutter.
+	const COMPACT_GAP = 12; // breathing room between the strip and the text
+	const COMPACT_HYSTERESIS = 16; // extra room required to expand back
+	const MIN_COLUMN_WIDTH = 320; // narrower than this is not the message column
+	const MAX_COLUMN_SHARE = 0.95; // wider than this is a full-width wrapper
+
 	// ---- formatting helpers ----
 
 	function pad(n) {
@@ -456,6 +466,76 @@
 			return null;
 		}
 
+		// The message column's rectangle, or null if we can't identify it.
+		// Hit-testing the middle of the viewport lands inside the conversation on
+		// any chat page. The stack that comes back runs innermost-first: a text
+		// span, the message, the column, then full-width wrappers. The column is
+		// the widest element that is still narrower than the viewport, so the
+		// size bounds pick it out without depending on claude.ai's class names.
+		// Three heights, not one: a short conversation leaves the middle of the
+		// viewport empty, and a single centre probe then finds nothing and
+		// reports the page as column-less.
+		_contentColumnRect() {
+			const vw = window.innerWidth;
+			const vh = window.innerHeight;
+			let widest = null;
+			for (const frac of [0.3, 0.5, 0.7]) {
+				for (const el of document.elementsFromPoint(vw / 2, vh * frac)) {
+					if (el === this.root || this.root.contains(el) || el.contains?.(this.root)) continue;
+					const r = el.getBoundingClientRect();
+					if (r.width < MIN_COLUMN_WIDTH || r.width > vw * MAX_COLUMN_SHARE) continue;
+					if (!widest || r.width > widest.width) widest = r;
+				}
+			}
+			return widest;
+		}
+
+		// Free space between the message column and the edge the widget sits on.
+		_gutterWidth(column) {
+			if (!column) return null;
+			return this.settings.corner.endsWith('right')
+				? window.innerWidth - column.right
+				: column.left;
+		}
+
+		// Shed the strip's widest parts when the gutter is too tight to hold the
+		// whole thing, so it sits beside the text instead of on top of it.
+		// Deciding from the cached full width (never the compacted one) is what
+		// keeps this from oscillating: the same number drives both directions,
+		// and the hysteresis margin absorbs measurement noise.
+		_updateCompact() {
+			if (!this.root || this._builtLayout !== 'bar') return;
+			const compacted = this.root.classList.contains('cc-widget--compact');
+
+			if (this.settings.autoCompact === false) {
+				if (compacted) this._setCompact(false);
+				return;
+			}
+
+			// Only trust a width measured while the strip was showing everything.
+			if (!compacted) {
+				const live = this.root.getBoundingClientRect().width;
+				if (live > 0) this._fullBarWidth = live;
+			}
+			const fullWidth = this._fullBarWidth;
+			if (!fullWidth) return;
+
+			const gutter = this._gutterWidth(this._contentColumnRect());
+			// No column in reach: hold whatever we already show. Expanding here
+			// would put the strip back on top of the text every time a probe
+			// misses, which is worse than being a little too narrow.
+			if (gutter === null) return;
+
+			const needed = fullWidth + (this.settings.offsetX || 0) + COMPACT_GAP;
+			const next = compacted ? gutter < needed + COMPACT_HYSTERESIS : gutter < needed;
+			if (next !== compacted) this._setCompact(next);
+		}
+
+		_setCompact(on) {
+			this.root.classList.toggle('cc-widget--compact', on);
+			this._applyPosition();
+		}
+
 		// Step out of a panel's way instead of disappearing. Hiding is the last
 		// resort, for when there is genuinely nowhere to stand.
 		_applyObstruction(obstruction) {
@@ -518,6 +598,9 @@
 					});
 				}
 				this._applyObstruction(obstruction);
+				// The column moves when the sidebar opens or an artifact splits
+				// the view, not just when the window resizes.
+				this._updateCompact();
 			};
 			const scheduleRecheck = () => {
 				if (debounceTimer) return;
@@ -530,6 +613,9 @@
 			this._panelObserver.observe(document.body, { childList: true, subtree: true });
 			window.addEventListener('resize', () => {
 				this._applyPosition();
+				// Not debounced: dragging a window between screens should resize
+				// the strip as it goes, not 400ms after you let go.
+				this._updateCompact();
 				scheduleRecheck();
 			});
 			recheck();
@@ -901,6 +987,9 @@
 			this._syncClockFields(this.weeklyClock, s.clockShowDays, this.weeklyBlock);
 
 			this._renderAll();
+			// After _renderAll, so the width we cache is the one the current
+			// readings actually produce.
+			this._updateCompact();
 		}
 
 		// Adaptive positioning: apply the configured corner + offsets, but clamp

@@ -65,6 +65,9 @@
 		offsetY: 54, // px from top (or bottom) edge
 		offsetX: 16, // px from side edge
 		widgetWidth: 250,
+		// Slim bar only: shrink to fit the gutter when the window is too narrow
+		// to hold the whole strip beside the message column.
+		autoCompact: true,
 
 		// show/hide
 		showOnlyInChats: true, // hide the widget on claude.ai pages that aren't chats

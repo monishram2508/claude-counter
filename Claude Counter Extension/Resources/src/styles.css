@@ -401,3 +401,28 @@
 .cc-bar__ctx .cc-tokenBar::after {
 	display: none;
 }
+
+/* ---- narrow-window compacting ----
+   On a laptop the message column leaves a gutter too small for the whole
+   strip, so it ends up sitting on the text. Compact mode drops the two widest
+   items — the session clock and the context bar graphic — leaving three
+   figures that fit the gutter. Hovering (or pinning) brings everything back,
+   because by then you are looking at the widget rather than the text. */
+.cc-widget--bar.cc-widget--compact .cc-bar {
+	gap: 10px;
+}
+
+.cc-widget--bar.cc-widget--compact .cc-bar__clock,
+.cc-widget--bar.cc-widget--compact .cc-bar__ctx .cc-tokenBar {
+	display: none;
+}
+
+.cc-widget--bar.cc-widget--compact:hover .cc-bar__clock,
+.cc-widget--bar.cc-widget--compact.cc-bar--pinned .cc-bar__clock {
+	display: flex;
+}
+
+.cc-widget--bar.cc-widget--compact:hover .cc-bar__ctx .cc-tokenBar,
+.cc-widget--bar.cc-widget--compact.cc-bar--pinned .cc-bar__ctx .cc-tokenBar {
+	display: block;
+}

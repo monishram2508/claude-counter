@@ -122,6 +122,7 @@
 		// theme
 		bindSelect('layout', 'layout', false);
 		bindCheckbox('spectrum', 'spectrum');
+		bindCheckbox('autoCompact', 'autoCompact');
 
 		bindSelect('themeMode', 'themeMode', false);
 
