@@ -33,3 +33,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Atkinson Hyperlegible Next (SIL Open Font License 1.1)
+
+- Used for: the widget's typeface.
+- Bundled file: `src/fonts/atkinson-hyperlegible-next-latin.woff2` (variable weight 200–800, Latin subset as served by Google Fonts)
+- Copyright 2020-2024 The Atkinson Hyperlegible Next Project Authors (https://github.com/googlefonts/atkinson-hyperlegible-next)
+- License: SIL Open Font License 1.1, full text in `src/fonts/OFL.txt`.

@@ -59,7 +59,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "src/injected/bridge.js"
+        "src/injected/bridge.js",
+        "src/fonts/atkinson-hyperlegible-next-latin.woff2"
       ],
       "matches": [
         "https://claude.ai/*"

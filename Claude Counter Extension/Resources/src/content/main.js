@@ -125,8 +125,23 @@
 		CC.widget.setPageAllowed(!onlyChats || isChatSurface());
 	}
 
+	// Bundled Atkinson Hyperlegible Next, handed over as bytes rather than a URL
+	// so claude.ai's font-src policy never sees a request to block. On any
+	// failure the system stack in styles.css stays in place.
+	async function loadFont() {
+		try {
+			const runtime = globalThis.browser?.runtime || globalThis.chrome?.runtime;
+			const res = await fetch(runtime.getURL('src/fonts/atkinson-hyperlegible-next-latin.woff2'));
+			const face = new FontFace('Claude Counter Atkinson', await res.arrayBuffer(), { weight: '200 800' });
+			document.fonts.add(await face.load());
+		} catch {
+			// keep the system font
+		}
+	}
+
 	// Load persisted settings, then build UI. Watch for live changes from the popup.
 	(async () => {
+		loadFont(); // not awaited: the widget shouldn't wait on a typeface
 		if (CC.settings) {
 			await CC.settings.load();
 			CC.settings.watchStorage();
