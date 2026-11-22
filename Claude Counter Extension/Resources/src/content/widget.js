@@ -663,6 +663,53 @@
 			this.applySettings(this.settings);
 			this._renderAll();
 			this._watchSidePanel();
+			this._enableDrag();
+		}
+
+		// Drag anywhere except a button. On drop, snap to the nearest corner and
+		// save the distances from its edges, so the existing position settings
+		// (and the popup's controls) stay the single source of truth.
+		_enableDrag() {
+			const root = this.root;
+			root.addEventListener('pointerdown', (down) => {
+				if (down.button !== 0 || down.target.closest('button')) return;
+				const start = root.getBoundingClientRect();
+				const dx = down.clientX - start.left;
+				const dy = down.clientY - start.top;
+
+				const move = (e) => {
+					// A few pixels of slack so a plain click never moves or saves.
+					if (!this._dragging && Math.hypot(e.clientX - down.clientX, e.clientY - down.clientY) < 4) return;
+					this._dragging = true;
+					root.classList.add('cc-widget--dragging');
+					const r = root.getBoundingClientRect();
+					const x = Math.min(Math.max(0, e.clientX - dx), window.innerWidth - r.width);
+					const y = Math.min(Math.max(0, e.clientY - dy), window.innerHeight - r.height);
+					Object.assign(root.style, { left: `${x}px`, top: `${y}px`, right: '', bottom: '' });
+				};
+				const up = () => {
+					window.removeEventListener('pointermove', move);
+					window.removeEventListener('pointerup', up);
+					if (!this._dragging) return;
+					this._dragging = false;
+					root.classList.remove('cc-widget--dragging');
+					const r = root.getBoundingClientRect();
+					const vw = window.innerWidth;
+					const vh = window.innerHeight;
+					const right = r.left + r.width / 2 > vw / 2;
+					const bottom = r.top + r.height / 2 > vh / 2;
+					// Where it was dropped is where it should rest; a panel still in
+					// the way gets dodged again on the next check.
+					this.dodgeY = 0;
+					CC.settings.save({
+						corner: `${bottom ? 'bottom' : 'top'}-${right ? 'right' : 'left'}`,
+						offsetX: Math.round(Math.max(0, right ? vw - r.right : r.left)),
+						offsetY: Math.round(Math.max(0, bottom ? vh - r.bottom : r.top))
+					});
+				};
+				window.addEventListener('pointermove', move);
+				window.addEventListener('pointerup', up);
+			});
 		}
 
 		// Swap layouts in place. Every element reference is rebuilt, so this has to
@@ -997,7 +1044,9 @@
 		// window resize) with a large saved offset would otherwise push the widget
 		// partly or entirely out of view.
 		_applyPosition() {
-			if (!this.root) return;
+			// Mid-drag the pointer owns the position; a resize or dodge recheck
+			// would yank the widget out from under it.
+			if (!this.root || this._dragging) return;
 			const s = this.settings;
 			this.root.style.top = '';
 			this.root.style.bottom = '';

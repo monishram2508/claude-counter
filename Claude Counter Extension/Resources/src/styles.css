@@ -426,3 +426,12 @@
 .cc-widget--bar.cc-widget--compact.cc-bar--pinned .cc-bar__ctx .cc-tokenBar {
 	display: block;
 }
+
+/* Draggable anywhere but its buttons; the drop snaps to the nearest corner. */
+.cc-widget {
+	cursor: grab;
+}
+
+.cc-widget--dragging {
+	cursor: grabbing;
+}
