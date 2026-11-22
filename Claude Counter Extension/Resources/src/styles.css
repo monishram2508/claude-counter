@@ -438,6 +438,9 @@
 /* ---- drag grip ----
    Six dots; the padding makes the grab target bigger than the dots. */
 .cc-grip {
+	/* claude.ai's reset makes everything border-box, which would let the
+	   padding swallow the dots entirely. */
+	box-sizing: content-box;
 	flex: 0 0 auto;
 	width: 8px;
 	height: 12px;
