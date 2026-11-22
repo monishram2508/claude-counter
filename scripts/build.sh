@@ -109,20 +109,22 @@ end tell
 APPLESCRIPT
 }
 
+quit_safari() {
+	osascript -e 'tell application "Safari" to quit' >/dev/null 2>&1 || true
+	for _ in $(seq 1 50); do
+		pgrep -xq Safari || return 0
+		sleep 0.2
+	done
+	printf '\nSafari is still running — it may be asking you to confirm closing tabs.\n' >&2
+	printf 'Quit it and re-run, or pass --keep-safari.\n' >&2
+	exit 1
+}
+
 if (( restart_safari && safari_was_running )); then
 	step "Quitting Safari"
 	capture_tabs > "$SAVED_TABS"
 	note "saved $(grep -c . "$SAVED_TABS" || echo 0) tabs to reopen"
-	osascript -e 'tell application "Safari" to quit' >/dev/null 2>&1 || true
-	for _ in $(seq 1 50); do
-		pgrep -xq Safari || break
-		sleep 0.2
-	done
-	if pgrep -xq Safari; then
-		printf '\nSafari is still running — it may be asking you to confirm closing tabs.\n' >&2
-		printf 'Quit it and re-run, or pass --keep-safari.\n' >&2
-		exit 1
-	fi
+	quit_safari
 fi
 
 # ---------------------------------------------------------------------------
@@ -256,6 +258,14 @@ done
 # ---------------------------------------------------------------------------
 if (( restart_safari && safari_was_running )); then
 	step "Reopening Safari"
+	# Relaunched during the build (by you, or anything else), Safari binds the
+	# copy xcodebuild registers in build/ — which step 3 then deletes, leaving
+	# it running files that no longer exist. Quit it again so it binds the
+	# install.
+	if pgrep -xq Safari; then
+		note "Safari came back during the build; quitting it again"
+		quit_safari
+	fi
 	open -a Safari
 	# Wait for it to be scriptable before asking what it restored.
 	for _ in $(seq 1 50); do
