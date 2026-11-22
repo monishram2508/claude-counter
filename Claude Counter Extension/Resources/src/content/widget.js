@@ -875,10 +875,12 @@
 			toggle.type = 'button';
 			toggle.setAttribute('aria-label', 'Toggle details');
 			toggle.textContent = '⌄';
-			// Hover reveals; clicking pins it open so it survives the pointer leaving.
+			toggle.setAttribute('aria-expanded', 'false');
+			// The only way to unfold: hover-to-reveal made the widget impossible
+			// to grab without it opening under the pointer.
 			toggle.addEventListener('click', (e) => {
 				e.stopPropagation();
-				this.root.classList.toggle('cc-bar--pinned');
+				toggle.setAttribute('aria-expanded', this.root.classList.toggle('cc-bar--pinned'));
 			});
 			strip.appendChild(toggle);
 
