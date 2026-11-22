@@ -250,7 +250,9 @@
 	transition: border-radius 140ms ease;
 }
 
-.cc-widget--bar:hover,
+/* Hovering reveals the details — except over the grip or mid-drag, so taking
+   hold of the widget never unfolds it under the pointer. */
+.cc-widget--bar:hover:not(.cc-widget--dragging, :has(.cc-grip:hover)),
 .cc-widget--bar.cc-bar--pinned {
 	border-radius: 16px;
 }
@@ -352,7 +354,7 @@
 	opacity: 0.9;
 }
 
-.cc-widget--bar:hover .cc-bar__toggle,
+.cc-widget--bar:hover:not(.cc-widget--dragging, :has(.cc-grip:hover)) .cc-bar__toggle,
 .cc-widget--bar.cc-bar--pinned .cc-bar__toggle {
 	transform: rotate(180deg);
 }
@@ -366,7 +368,7 @@
 	transition: grid-template-rows 160ms ease, opacity 120ms ease;
 }
 
-.cc-widget--bar:hover .cc-bar__details,
+.cc-widget--bar:hover:not(.cc-widget--dragging, :has(.cc-grip:hover)) .cc-bar__details,
 .cc-widget--bar.cc-bar--pinned .cc-bar__details {
 	grid-template-rows: 1fr;
 	opacity: 1;
@@ -417,21 +419,50 @@
 	display: none;
 }
 
-.cc-widget--bar.cc-widget--compact:hover .cc-bar__clock,
+.cc-widget--bar.cc-widget--compact:hover:not(.cc-widget--dragging, :has(.cc-grip:hover)) .cc-bar__clock,
 .cc-widget--bar.cc-widget--compact.cc-bar--pinned .cc-bar__clock {
 	display: flex;
 }
 
-.cc-widget--bar.cc-widget--compact:hover .cc-bar__ctx .cc-tokenBar,
+.cc-widget--bar.cc-widget--compact:hover:not(.cc-widget--dragging, :has(.cc-grip:hover)) .cc-bar__ctx .cc-tokenBar,
 .cc-widget--bar.cc-widget--compact.cc-bar--pinned .cc-bar__ctx .cc-tokenBar {
 	display: block;
 }
 
-/* Draggable anywhere but its buttons; the drop snaps to the nearest corner. */
-.cc-widget {
+/* ---- drag grip ----
+   Six dots; the padding makes the grab target bigger than the dots. */
+.cc-grip {
+	flex: 0 0 auto;
+	width: 8px;
+	height: 12px;
+	padding: 6px 4px;
+	background-image: radial-gradient(circle, currentColor 1px, transparent 1.4px);
+	background-size: 4px 4px;
+	background-origin: content-box;
+	background-clip: content-box;
+	opacity: 0.4;
 	cursor: grab;
+	touch-action: none;
+	transition: opacity 120ms ease;
 }
 
-.cc-widget--dragging {
+.cc-grip:hover {
+	opacity: 0.8;
+}
+
+.cc-widget--dragging .cc-grip {
 	cursor: grabbing;
+	opacity: 0.8;
+}
+
+.cc-bar .cc-grip {
+	margin: 0 -6px 0 -6px;
+}
+
+/* The panel has no strip to sit in, so the grip lies across its top edge. */
+.cc-widget--panel .cc-grip {
+	position: absolute;
+	top: -2px;
+	left: 50%;
+	transform: translateX(-50%) rotate(90deg);
 }

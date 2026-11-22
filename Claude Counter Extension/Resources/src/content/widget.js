@@ -198,6 +198,15 @@
 		}
 	}
 
+	// The only place a drag can start, so clicks and hovers elsewhere stay clicks
+	// and hovers.
+	function buildGrip() {
+		const grip = document.createElement('div');
+		grip.className = 'cc-grip';
+		grip.title = 'Drag to move';
+		return grip;
+	}
+
 	// ---- Segmented clock (DD:HH:MM:SS) using tabular figures ----
 
 	function buildSegmentedClock(showDays) {
@@ -666,18 +675,20 @@
 			this._enableDrag();
 		}
 
-		// Drag anywhere except a button. On drop, snap to the nearest corner and
-		// save the distances from its edges, so the existing position settings
-		// (and the popup's controls) stay the single source of truth.
+		// Drag by the grip. On drop, snap to the nearest corner and save the
+		// distances from its edges, so the existing position settings (and the
+		// popup's controls) stay the single source of truth.
 		_enableDrag() {
 			const root = this.root;
 			root.addEventListener('pointerdown', (down) => {
-				if (down.button !== 0 || down.target.closest('button')) return;
+				if (down.button !== 0 || !down.target.closest('.cc-grip')) return;
 				const start = root.getBoundingClientRect();
 				const dx = down.clientX - start.left;
 				const dy = down.clientY - start.top;
 
 				const move = (e) => {
+					// Released outside the window: the pointerup went elsewhere.
+					if (e.buttons === 0) return up();
 					// A few pixels of slack so a plain click never moves or saves.
 					if (!this._dragging && Math.hypot(e.clientX - down.clientX, e.clientY - down.clientY) < 4) return;
 					this._dragging = true;
@@ -690,6 +701,7 @@
 				const up = () => {
 					window.removeEventListener('pointermove', move);
 					window.removeEventListener('pointerup', up);
+					window.removeEventListener('pointercancel', up);
 					if (!this._dragging) return;
 					this._dragging = false;
 					root.classList.remove('cc-widget--dragging');
@@ -709,6 +721,7 @@
 				};
 				window.addEventListener('pointermove', move);
 				window.addEventListener('pointerup', up);
+				window.addEventListener('pointercancel', up);
 			});
 		}
 
@@ -723,6 +736,7 @@
 
 		_buildPanelLayout() {
 			const s = this.settings;
+			this.root.appendChild(buildGrip());
 
 			// --- rings row ---
 			const ringsRow = document.createElement('div');
@@ -811,6 +825,7 @@
 
 			const strip = document.createElement('div');
 			strip.className = 'cc-bar';
+			strip.appendChild(buildGrip());
 
 			const metric = (kind, ring) => {
 				const block = document.createElement('div');
