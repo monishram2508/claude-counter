@@ -1215,10 +1215,12 @@
 				const scale = (s.autoContextScale !== false && this.detectedLimit)
 					? this.detectedLimit
 					: (s.contextScale || 200000);
-				const pct = Math.max(0, Math.min(100, (tokens / scale) * 100));
+				// The label reports the real figure, past 100% included; only the
+				// fill stops at full.
+				const pct = Math.max(0, (tokens / scale) * 100);
 				const prefix = measured != null ? '' : '~';
 				const c = this._colors();
-				this.tokenBarFill.style.width = `${pct}%`;
+				this.tokenBarFill.style.width = `${Math.min(100, pct)}%`;
 				this.tokenBarFill.style.background = pct >= s.warnThreshold ? c.warn : c.context;
 				if (this.ctxPctEl) this.ctxPctEl.textContent = `${Math.round(pct)}%`;
 				this.tokenValueEl.textContent = `${prefix}${tokens.toLocaleString()} / ${scale.toLocaleString()}`;
